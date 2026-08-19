@@ -1,0 +1,15 @@
+# ── Framework web ─────────────────────────────────────────
+django
+
+# ── Consumo de la API de TechGear ─────────────────────────
+# Las vistas de Django son sincronas, por eso se usa requests y no httpx async.
+requests
+
+# ── Configuracion ─────────────────────────────────────────
+python-dotenv
+
+# ── Pruebas ───────────────────────────────────────────────
+# requests-mock permite probar las vistas sin levantar FastAPI.
+pytest
+pytest-django
+requests-mock

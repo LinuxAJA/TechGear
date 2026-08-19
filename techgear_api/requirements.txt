@@ -1,0 +1,18 @@
+# ── Framework y servidor ──────────────────────────────────
+fastapi
+uvicorn[standard]
+
+# ── Base de datos: MongoDB Atlas ──────────────────────────
+# Motor es el driver asincrono usado en clase. Todo su uso queda confinado
+# a app/db/mongodb.py y app/repositories/ (ver README, seccion Arquitectura).
+motor
+
+# ── Validacion y configuracion ────────────────────────────
+pydantic[email]
+pydantic-settings
+python-dotenv
+
+# ── Pruebas ───────────────────────────────────────────────
+pytest
+pytest-asyncio
+httpx

@@ -1,0 +1,1 @@
+"""Endpoints agrupados por recurso."""

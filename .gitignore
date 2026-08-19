@@ -1,0 +1,34 @@
+# ── Secretos ──────────────────────────────────────────────
+# NUNCA se versionan credenciales. Solo se versiona .env.example
+.env
+.env.*
+!.env.example
+
+# ── Python ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ── Django ────────────────────────────────────────────────
+# Base de datos local: solo guarda usuarios y sesiones, se regenera con migrate
+db.sqlite3
+db.sqlite3-journal
+# Salida de collectstatic (generada, no fuente)
+staticfiles/
+
+# ── Node / Tailwind ───────────────────────────────────────
+node_modules/
+# OJO: static/css/tailwind.css SI se versiona a proposito (ver README)
+
+# ── Editores y sistema operativo ──────────────────────────
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
