@@ -45,13 +45,21 @@ techGear/
 ├── techgear_api/                  # ── FastAPI ──
 │   ├── app/
 │   │   ├── main.py                # composición: app, lifespan y routers
-│   │   ├── core/config.py         # Settings validadas con pydantic-settings
-│   │   ├── db/mongodb.py          # cliente Motor: conectar, cerrar, obtener base
+│   │   ├── core/
+│   │   │   ├── config.py          # Settings validadas con pydantic-settings
+│   │   │   ├── exceptions.py      # excepciones de dominio (sin HTTP)
+│   │   │   └── handlers.py        # traduce esas excepciones a códigos HTTP
+│   │   ├── db/
+│   │   │   ├── mongodb.py         # cliente Motor: conectar, cerrar, obtener base
+│   │   │   └── indexes.py         # índices creados al arrancar (idempotentes)
 │   │   ├── schemas/               # DTOs de entrada y salida (Pydantic)
 │   │   ├── repositories/          # capa de datos (único lugar que conoce BSON)
 │   │   ├── services/              # capa de negocio (stock, totales, estados)
-│   │   └── api/v1/                # routers y endpoints versionados
-│   ├── tests/
+│   │   └── api/
+│   │       ├── deps.py            # inyección de dependencias
+│   │       └── v1/                # routers y endpoints versionados
+│   ├── tests/                     # pruebas con repositorio falso en memoria
+│   ├── pytest.ini
 │   ├── .env.example
 │   └── requirements.txt
 │
@@ -142,15 +150,40 @@ de variables y valores de ejemplo.
 | Método | Ruta | Descripción |
 |---|---|---|
 | `GET` | `/health` | Estado del servicio y de la conexión a MongoDB |
-| `GET` | `/api/v1/products` | Listado paginado con búsqueda y filtros *(Clase 2)* |
-| `POST` | `/api/v1/products` | Crear producto *(Clase 2)* |
-| `GET` | `/api/v1/products/{id}` | Consultar producto *(Clase 2)* |
-| `PATCH` | `/api/v1/products/{id}` | Actualizar producto *(Clase 2)* |
-| `DELETE` | `/api/v1/products/{id}` | Desactivar producto *(Clase 2)* |
-| `POST` | `/api/v1/orders` | Registrar pedido *(Clase 2)* |
-| `GET` | `/api/v1/orders` | Listado paginado de pedidos *(Clase 2)* |
-| `GET` | `/api/v1/orders/{id}` | Consultar pedido *(Clase 2)* |
-| `PATCH` | `/api/v1/orders/{id}/status` | Cambiar estado del pedido *(Clase 2)* |
+| `GET` | `/api/v1/products` | Listado paginado con búsqueda (`q`), filtro por categoría y por estado |
+| `POST` | `/api/v1/products` | Crear producto. Devuelve `409` si el SKU ya existe |
+| `GET` | `/api/v1/products/{id}` | Consultar producto por identificador |
+| `PATCH` | `/api/v1/products/{id}` | Actualización parcial: solo cambian los campos enviados |
+| `DELETE` | `/api/v1/products/{id}` | Borrado lógico (`is_active = false`). Devuelve `204` |
+| `POST` | `/api/v1/orders` | Registrar pedido. Calcula el total y descuenta inventario |
+| `GET` | `/api/v1/orders` | Listado paginado, filtrable por `customer` y `status` |
+| `GET` | `/api/v1/orders/{id}` | Consultar pedido por identificador |
+| `PATCH` | `/api/v1/orders/{id}/status` | Cambiar estado validando la transición |
+
+### Estados de un pedido
+
+```
+pending ──> paid ──> shipped ──> delivered
+   │         │
+   └─────────┴──> cancelled   (devuelve las unidades al inventario)
+```
+
+`delivered` y `cancelled` son estados finales. Cualquier otra transición responde `409`.
+
+### Códigos de error
+
+Todos los errores comparten la misma forma, para que el portal Django los interprete con un
+solo bloque de código:
+
+```json
+{ "detail": "Stock insuficiente para 'RTX 4070': se solicitaron 99 unidades y solo hay 8 disponibles.", "code": "insufficient_stock" }
+```
+
+| Código HTTP | Cuándo ocurre |
+|---|---|
+| `404` | `product_not_found`, `order_not_found` |
+| `409` | `duplicate_sku`, `insufficient_stock`, `inactive_product`, `invalid_status_transition` |
+| `422` | Validación de Pydantic: identificador mal formado, campos inválidos o faltantes |
 
 ---
 
@@ -172,8 +205,16 @@ de variables y valores de ejemplo.
 ## Pruebas
 
 ```bash
-cd techgear_api && pytest
+cd techgear_api
+venv\Scripts\activate
+pytest
 ```
+
+Las pruebas de servicio usan un **repositorio falso en memoria** que implementa la misma
+interfaz que el repositorio real. Por eso corren en menos de un segundo, no necesitan conexión
+a MongoDB Atlas y no dejan datos de prueba en la base. Cubren el cálculo de totales, el
+*snapshot* de precios, el descuento de inventario, la reposición ante un fallo parcial, las
+transiciones de estado y el borrado lógico.
 
 ---
 

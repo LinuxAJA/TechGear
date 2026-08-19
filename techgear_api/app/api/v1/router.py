@@ -6,8 +6,9 @@ una v2, ambas versiones podran convivir sin romper al portal Django.
 
 from fastapi import APIRouter
 
+from app.api.v1.endpoints import orders, products
+
 api_router = APIRouter()
 
-# Los routers de productos y pedidos se montan aqui en la Clase 2:
-# api_router.include_router(products.router)
-# api_router.include_router(orders.router)
+api_router.include_router(products.router)
+api_router.include_router(orders.router)
