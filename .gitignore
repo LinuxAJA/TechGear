@@ -27,6 +27,11 @@ staticfiles/
 node_modules/
 # OJO: static/css/tailwind.css SI se versiona a proposito (ver README)
 
+# ── Documentacion de trabajo interna ──────────────────────
+# Planteamiento arquitectonico: guia de desarrollo personal, no hace parte
+# de la entrega. Se mantiene local para consulta durante el proyecto.
+PLANTEAMIENTO.md
+
 # ── Editores y sistema operativo ──────────────────────────
 .vscode/
 .idea/
