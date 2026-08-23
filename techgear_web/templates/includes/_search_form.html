@@ -1,0 +1,30 @@
+{# Filtros del catalogo. Se envian por GET para que la busqueda quede en la URL
+   y sea compartible y navegable con el boton atras del navegador. #}
+<form method="get" action="{% url 'catalog:product_list' %}"
+      class="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+
+    <label for="q" class="sr-only">Buscar productos</label>
+    <input type="search" id="q" name="q" value="{{ search }}"
+           placeholder="Buscar por nombre, SKU o descripcion"
+           class="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm
+                  focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+
+    <label for="category" class="sr-only">Categoria</label>
+    <select id="category" name="category"
+            class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm
+                   focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+        <option value="">Todas las categorias</option>
+        {% for value, label in categories %}
+            <option value="{{ value }}" {% if value == selected_category %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+
+    <button type="submit" class="btn-primary">Buscar</button>
+
+    {% if search or selected_category %}
+        <a href="{% url 'catalog:product_list' %}"
+           class="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:text-brand-600">
+            Limpiar
+        </a>
+    {% endif %}
+</form>

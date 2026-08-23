@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Catalogo | TechGear{% endblock %}
+
+{% block content %}
+    <header class="mb-6">
+        <h1 class="text-3xl font-bold tracking-tight text-slate-900">Catalogo de productos</h1>
+        <p class="mt-1 text-slate-600">Hardware y accesorios tecnologicos.</p>
+    </header>
+
+    {% include "includes/_search_form.html" %}
+
+    {% if products %}
+        <p class="mb-4 text-sm text-slate-500">
+            {{ total }} producto{{ total|pluralize }} encontrado{{ total|pluralize }}
+        </p>
+
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {% for product in products %}
+                {% include "includes/_product_card.html" %}
+            {% endfor %}
+        </div>
+
+        {% include "includes/_pagination.html" %}
+
+    {% else %}
+        <div class="card text-center">
+            <p class="text-slate-600">
+                {% if search or selected_category %}
+                    No se encontraron productos con esos criterios de busqueda.
+                {% else %}
+                    Todavia no hay productos en el catalogo.
+                {% endif %}
+            </p>
+            {% if search or selected_category %}
+                <a href="{% url 'catalog:product_list' %}"
+                   class="mt-3 inline-block text-sm font-medium text-brand-600 hover:underline">
+                    Ver todo el catalogo
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}
