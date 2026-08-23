@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Pagina no encontrada | TechGear{% endblock %}
+
+{% block content %}
+    <div class="card mx-auto max-w-xl text-center">
+        <p class="mb-2 text-5xl font-bold text-brand-600">404</p>
+        <h1 class="mb-3 text-2xl font-bold text-slate-900">Pagina no encontrada</h1>
+        <p class="mb-4 text-slate-600">La direccion que buscas no existe o fue movida.</p>
+        <a href="{% url 'catalog:product_list' %}" class="btn-primary inline-block">Ir al catalogo</a>
+    </div>
+{% endblock %}

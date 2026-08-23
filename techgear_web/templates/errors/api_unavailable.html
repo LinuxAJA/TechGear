@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Servicio no disponible | TechGear{% endblock %}
+
+{% block content %}
+    {# Si la API esta caida el usuario ve esta pagina, no una traza de error.
+       Un fallo del microservicio es un estado esperado del sistema, no un bug
+       del portal. #}
+    <div class="card mx-auto max-w-xl text-center">
+        <h1 class="mb-3 text-2xl font-bold text-slate-900">El catalogo no esta disponible</h1>
+
+        <p class="mb-2 text-slate-600">
+            No pudimos comunicarnos con el servicio de catalogo de TechGear.
+            Intentalo de nuevo en unos minutos.
+        </p>
+
+        {% if detail %}
+            <p class="mb-4 text-sm text-slate-400">Detalle tecnico: {{ detail }}</p>
+        {% endif %}
+
+        <a href="{% url 'catalog:product_list' %}" class="btn-primary mt-2 inline-block">Reintentar</a>
+    </div>
+{% endblock %}

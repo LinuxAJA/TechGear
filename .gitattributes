@@ -1,0 +1,16 @@
+# Normalizacion de finales de linea
+* text=auto
+
+# ── Archivos generados ────────────────────────────────────
+# tailwind.css es la salida de la CLI de Tailwind. Se versiona a proposito para
+# que el proyecto se pueda clonar y ejecutar sin instalar Node (ver README),
+# pero se marca como generado para que no contamine las revisiones:
+#   -diff                  -> git no imprime el contenido en los diffs
+#   linguist-generated     -> GitHub lo colapsa en los Pull Requests
+#   merge=ours             -> ante un conflicto se conserva la version local,
+#                             que de todos modos se regenera con npm run build:css
+techgear_web/static/css/tailwind.css -diff linguist-generated=true merge=ours
+
+# package-lock.json tambien es generado, pero SI debe revisarse en los diffs
+# porque un cambio ahi implica un cambio de dependencias.
+techgear_web/package-lock.json linguist-generated=true

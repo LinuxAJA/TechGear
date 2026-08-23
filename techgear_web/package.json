@@ -1,0 +1,19 @@
+{
+  "name": "techgear_web",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev:css":   "tailwindcss -i ./static/src/input.css -o ./static/css/tailwind.css --watch",
+    "build:css": "tailwindcss -i ./static/src/input.css -o ./static/css/tailwind.css --minify"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "tailwindcss": "^4.3.3"
+  }
+}

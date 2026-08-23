@@ -1,0 +1,29 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TechGear{% endblock %}</title>
+
+    {# Tailwind compilado localmente con la CLI. No se usa CDN: el sitio debe
+       verse igual sin conexion y sin depender de un tercero. #}
+    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="flex min-h-screen flex-col bg-slate-50 text-slate-800">
+
+    {% include "includes/_navbar.html" %}
+
+    <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+        {% include "includes/_messages.html" %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="border-t border-slate-200 bg-white">
+        <div class="mx-auto max-w-6xl px-4 py-6 text-sm text-slate-500">
+            TechGear &mdash; Portal Django que consume la API de catalogo y pedidos.
+        </div>
+    </footer>
+
+</body>
+</html>

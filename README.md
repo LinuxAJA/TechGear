@@ -63,7 +63,25 @@ techGear/
 │   ├── .env.example
 │   └── requirements.txt
 │
-└── techgear_web/                  # ── Django ── (a partir de la Clase 3)
+└── techgear_web/                  # ── Django (patrón MVT) ──
+    ├── manage.py
+    ├── config/                    # proyecto: settings por entorno, urls, wsgi
+    ├── core/                      # app de utilidades transversales
+    │   ├── api/
+    │   │   ├── client.py          # ÚNICO módulo que usa requests (Gateway)
+    │   │   ├── exceptions.py      # APINotFound, APIValidationError, APIUnavailable
+    │   │   ├── products.py        # operaciones del catálogo
+    │   │   └── orders.py          # pedidos (Clase 4)
+    │   └── templatetags/
+    │       └── formatting.py      # filtros |cop y |categoria
+    ├── apps/
+    │   ├── catalog/               # vista principal del catálogo
+    │   └── orders/                # carrito y pedidos (Clase 4)
+    ├── templates/                 # base.html, includes/, catalog/, errors/
+    ├── static/
+    │   ├── src/input.css          # fuente de Tailwind (se edita)
+    │   └── css/tailwind.css       # generado por la CLI (se versiona)
+    ├── package.json               # toolchain de Tailwind
     ├── .env.example
     └── requirements.txt
 ```
@@ -113,7 +131,80 @@ Al arrancar debe verse en la consola `Conexion a MongoDB Atlas exitosa`.
 
 ### 3. Levantar el portal Django (terminal 2)
 
-> Disponible a partir de la Clase 3.
+La API debe estar corriendo primero: el portal no tiene datos propios, los pide por HTTP.
+
+```bash
+cd techgear_web
+
+python -m venv venv
+venv\Scripts\activate          # Windows
+# source venv/bin/activate     # Linux / macOS
+
+pip install -r requirements.txt
+
+copy .env.example .env         # Windows  (cp en Linux/macOS)
+# Generar una SECRET_KEY con:
+# python -c "from django.core.management.utils import get_random_secret_key as k; print(k())"
+
+python manage.py migrate       # crea SQLite: solo usuarios y sesiones
+python manage.py runserver 8000
+```
+
+El portal queda en http://localhost:8000
+
+### 4. Recompilar los estilos (solo si se tocan plantillas o `input.css`)
+
+Tailwind está instalado como dependencia del proyecto, **no se usa el CDN**. El archivo generado
+`static/css/tailwind.css` se versiona a propósito, para que el proyecto se pueda clonar y ejecutar
+sin instalar Node.
+
+```bash
+cd techgear_web
+npm install
+npm run dev:css        # modo watch durante el desarrollo
+npm run build:css      # compilado minificado para la entrega
+```
+
+---
+
+## Rutas del portal
+
+| Ruta | Vista | Descripción |
+|---|---|---|
+| `/` | `ProductListView` | Catálogo: listado con búsqueda (`?q=`), filtro (`?category=`) y paginación (`?page=`) |
+| `/admin/` | Django admin | Administración de usuarios y sesiones |
+
+## Integración HTTP con la API
+
+El consumo de la API con la librería **`requests`** vive en un único módulo:
+**[`techgear_web/core/api/client.py`](techgear_web/core/api/client.py)**.
+
+Está centralizado ahí, y no repetido en cada vista, por cuatro razones concretas:
+
+1. Una sola `requests.Session` reutiliza la conexión TCP/TLS entre peticiones.
+2. El **timeout siempre se aplica**. Una petición sin timeout puede dejar colgada la vista de
+   Django indefinidamente si la API no responde.
+3. Los reintentos ante fallos transitorios (502/503/504) se configuran una vez, y solo para
+   métodos idempotentes: repetir un `POST` podría crear dos pedidos.
+4. Los códigos HTTP se traducen a excepciones tipadas (`APINotFound`, `APIValidationError`,
+   `APIUnavailable`) en un solo lugar, de modo que las vistas manejan errores de negocio y no
+   números.
+
+Encima del cliente, `core/api/products.py` expone las operaciones del catálogo. Ninguna vista
+importa `requests` directamente: es el patrón **Gateway** o capa anticorrupción.
+
+Si la API está caída, el portal responde **503** con la página `errors/api_unavailable.html` en
+lugar de una traza de error.
+
+## ¿Por qué `models.py` está vacío?
+
+No es un descuido. En esta arquitectura híbrida **el modelo de dominio es remoto**: los productos
+y los pedidos viven en MongoDB Atlas y se consultan a través de la API. El portal no los replica
+en un ORM porque tener dos fuentes de verdad para el mismo dato es exactamente lo que se quiere
+evitar. La "M" del patrón MVT la aporta la API; Django pone la Vista y la Plantilla.
+
+La base SQLite del portal existe únicamente para `django.contrib.auth`: usuarios y sesiones, que
+sí son responsabilidad del frontend.
 
 ---
 
