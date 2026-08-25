@@ -11,13 +11,13 @@ Sistema web híbrido para una tienda de hardware y accesorios tecnológicos.
 
 ## Enlaces de los servicios desplegados
 
-| Servicio | Entorno | Enlace |
-|---|---|---|
-| API — Documentación interactiva (Swagger UI) | Render | _pendiente de desplegar_ |
-| API — Estado del servicio | Render | _pendiente de desplegar_ |
-| API — URL base | Render | _pendiente de desplegar_ |
-| Portal web (Django) | — | _pendiente de desplegar_ |
-| Repositorio | GitHub | https://github.com/LinuxAJA/TechGear |
+| Servicio                                       | Entorno | Enlace                                        |
+| ---------------------------------------------- | ------- | --------------------------------------------- |
+| API — Documentación interactiva (Swagger UI) | Render  | https://techgear-api-10pc.onrender.com/docs   |
+| API — Estado del servicio                     | Render  | https://techgear-api-10pc.onrender.com/health |
+| API — URL base                                | Render  | https://techgear-api-10pc.onrender.com/       |
+| Portal web (Django)                            | —      | _pendiente de desplegar_                    |
+| Repositorio                                    | GitHub  | https://github.com/LinuxAJA/TechGear          |
 
 > **El primer acceso puede tardar.** La API se despliega en el plan gratuito de Render, que
 > duerme el servicio tras 15 minutos sin tráfico y tarda cerca de un minuto en volver a
@@ -147,11 +147,11 @@ uvicorn app.main:app --reload --port 8001
 
 Al arrancar debe verse en la consola `Conexion a MongoDB Atlas exitosa`.
 
-| Recurso | URL |
-|---|---|
-| Documentación interactiva (Swagger UI) | http://localhost:8001/docs |
-| Documentación alternativa (ReDoc) | http://localhost:8001/redoc |
-| Estado del servicio | http://localhost:8001/health |
+| Recurso                                 | URL                          |
+| --------------------------------------- | ---------------------------- |
+| Documentación interactiva (Swagger UI) | http://localhost:8001/docs   |
+| Documentación alternativa (ReDoc)      | http://localhost:8001/redoc  |
+| Estado del servicio                     | http://localhost:8001/health |
 
 ### 3. Levantar el portal Django (terminal 2)
 
@@ -193,11 +193,11 @@ npm run build:css      # compilado minificado para la entrega
 
 ## Rutas del portal
 
-| Ruta | Vista | Descripción |
-|---|---|---|
-| `/` | `ProductListView` | Catálogo: listado con búsqueda (`?q=`), filtro (`?category=`) y paginación (`?page=`) |
-| `/producto/<id>/` | `ProductDetailView` | Ficha del producto. Un identificador inexistente devuelve `404` |
-| `/admin/` | Django admin | Administración de usuarios y sesiones |
+| Ruta                | Vista                 | Descripción                                                                                   |
+| ------------------- | --------------------- | ---------------------------------------------------------------------------------------------- |
+| `/`               | `ProductListView`   | Catálogo: listado con búsqueda (`?q=`), filtro (`?category=`) y paginación (`?page=`) |
+| `/producto/<id>/` | `ProductDetailView` | Ficha del producto. Un identificador inexistente devuelve`404`                               |
+| `/admin/`         | Django admin          | Administración de usuarios y sesiones                                                         |
 
 ## Template tags propios
 
@@ -206,12 +206,12 @@ El catálogo se renderiza con etiquetas de plantilla escritas para el proyecto, 
 de extender el lenguaje de plantillas y aquí se usa una de cada tipo, porque cada una resuelve un
 problema distinto:
 
-| Tag | Tipo | Uso | Qué resuelve |
-|---|---|---|---|
-| `{% product_card producto %}` | `inclusion_tag` | Tarjeta de producto | Recibe el producto como argumento explícito. Con `{% include %}` la tarjeta dependía de forma invisible de que existiera una variable llamada `product` en el contexto exterior |
-| `{% query_string page=2 %}` | `simple_tag` (`takes_context`) | Enlaces que conservan filtros | Parte de los parámetros reales de la petición. Antes cada enlace concatenaba cadenas con un `{% if %}` por filtro, y bastaba olvidar uno para perder la búsqueda al cambiar de página |
-| `\|cop`, `\|categoria` | `filter` | Precio y categoría legibles | La API envía el precio como cadena (`"3299900.00"`) para no perder centavos; el filtro lo presenta como `$ 3.299.900` |
-| `\|stock_label`, `\|stock_classes` | `filter` | Estado del inventario | Texto y color del distintivo se deciden juntos, en un solo sitio, para que no se desincronicen |
+| Tag                                  | Tipo                               | Uso                           | Qué resuelve                                                                                                                                                                              |
+| ------------------------------------ | ---------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `{% product_card producto %}`      | `inclusion_tag`                  | Tarjeta de producto           | Recibe el producto como argumento explícito. Con`{% include %}` la tarjeta dependía de forma invisible de que existiera una variable llamada `product` en el contexto exterior       |
+| `{% query_string page=2 %}`        | `simple_tag` (`takes_context`) | Enlaces que conservan filtros | Parte de los parámetros reales de la petición. Antes cada enlace concatenaba cadenas con un`{% if %}` por filtro, y bastaba olvidar uno para perder la búsqueda al cambiar de página |
+| `\|cop`, `\|categoria`             | `filter`                         | Precio y categoría legibles  | La API envía el precio como cadena (`"3299900.00"`) para no perder centavos; el filtro lo presenta como `$ 3.299.900`                                                                 |
+| `\|stock_label`, `\|stock_classes` | `filter`                         | Estado del inventario         | Texto y color del distintivo se deciden juntos, en un solo sitio, para que no se desincronicen                                                                                             |
 
 > **Detalle de sintaxis que conviene recordar:** `{# ... #}` es un comentario de **una sola
 > línea**. Si se parte en dos, Django deja de reconocerlo como comentario, vuelca el texto al HTML
@@ -259,43 +259,43 @@ de variables y valores de ejemplo.
 
 ### `techgear_api/.env`
 
-| Variable | Descripción | Ejemplo |
-|---|---|---|
-| `MONGODB_URL` | Cadena de conexión de Atlas | `mongodb+srv://<usuario>:<password>@<cluster>.mongodb.net/` |
-| `MONGODB_DB` | Base de datos de la aplicación | `techgear_db` |
-| `MONGODB_TEST_DB` | Base de datos usada por las pruebas | `techgear_test` |
-| `API_V1_PREFIX` | Prefijo de la versión de la API | `/api/v1` |
-| `CORS_ORIGINS` | Orígenes permitidos, separados por coma | `http://localhost:8000` |
-| `DEBUG` | Modo depuración | `True` |
+| Variable            | Descripción                             | Ejemplo                                                       |
+| ------------------- | ---------------------------------------- | ------------------------------------------------------------- |
+| `MONGODB_URL`     | Cadena de conexión de Atlas             | `mongodb+srv://<usuario>:<password>@<cluster>.mongodb.net/` |
+| `MONGODB_DB`      | Base de datos de la aplicación          | `techgear_db`                                               |
+| `MONGODB_TEST_DB` | Base de datos usada por las pruebas      | `techgear_test`                                             |
+| `API_V1_PREFIX`   | Prefijo de la versión de la API         | `/api/v1`                                                   |
+| `CORS_ORIGINS`    | Orígenes permitidos, separados por coma | `http://localhost:8000`                                     |
+| `DEBUG`           | Modo depuración                         | `True`                                                      |
 
 ### `techgear_web/.env`
 
-| Variable | Descripción | Ejemplo |
-|---|---|---|
-| `DJANGO_SECRET_KEY` | Clave criptográfica de Django | `clave-solo-para-desarrollo` |
-| `DJANGO_DEBUG` | Modo depuración | `True` |
-| `DJANGO_ALLOWED_HOSTS` | Hosts autorizados | `localhost,127.0.0.1` |
-| `TECHGEAR_API_BASE_URL` | URL base de la API | `http://localhost:8001/api/v1` |
-| `TECHGEAR_API_TIMEOUT` | Segundos de espera por petición | `10` (local) / `30` (Render) |
-| `TECHGEAR_API_RETRIES` | Reintentos ante 502/503/504 | `3` (local) / `5` (Render) |
-| `TECHGEAR_API_BACKOFF` | Factor de espera exponencial entre reintentos | `0.3` (local) / `2` (Render) |
+| Variable                  | Descripción                                  | Ejemplo                          |
+| ------------------------- | --------------------------------------------- | -------------------------------- |
+| `DJANGO_SECRET_KEY`     | Clave criptográfica de Django                | `clave-solo-para-desarrollo`   |
+| `DJANGO_DEBUG`          | Modo depuración                              | `True`                         |
+| `DJANGO_ALLOWED_HOSTS`  | Hosts autorizados                             | `localhost,127.0.0.1`          |
+| `TECHGEAR_API_BASE_URL` | URL base de la API                            | `http://localhost:8001/api/v1` |
+| `TECHGEAR_API_TIMEOUT`  | Segundos de espera por petición              | `10` (local) / `30` (Render) |
+| `TECHGEAR_API_RETRIES`  | Reintentos ante 502/503/504                   | `3` (local) / `5` (Render)   |
+| `TECHGEAR_API_BACKOFF`  | Factor de espera exponencial entre reintentos | `0.3` (local) / `2` (Render) |
 
 ---
 
 ## Endpoints
 
-| Método | Ruta | Descripción |
-|---|---|---|
-| `GET` | `/health` | Estado del servicio y de la conexión a MongoDB |
-| `GET` | `/api/v1/products` | Listado paginado con búsqueda (`q`), filtro por categoría y por estado |
-| `POST` | `/api/v1/products` | Crear producto. Devuelve `409` si el SKU ya existe |
-| `GET` | `/api/v1/products/{id}` | Consultar producto por identificador |
-| `PATCH` | `/api/v1/products/{id}` | Actualización parcial: solo cambian los campos enviados |
-| `DELETE` | `/api/v1/products/{id}` | Borrado lógico (`is_active = false`). Devuelve `204` |
-| `POST` | `/api/v1/orders` | Registrar pedido. Calcula el total y descuenta inventario |
-| `GET` | `/api/v1/orders` | Listado paginado, filtrable por `customer` y `status` |
-| `GET` | `/api/v1/orders/{id}` | Consultar pedido por identificador |
-| `PATCH` | `/api/v1/orders/{id}/status` | Cambiar estado validando la transición |
+| Método    | Ruta                           | Descripción                                                               |
+| ---------- | ------------------------------ | -------------------------------------------------------------------------- |
+| `GET`    | `/health`                    | Estado del servicio y de la conexión a MongoDB                            |
+| `GET`    | `/api/v1/products`           | Listado paginado con búsqueda (`q`), filtro por categoría y por estado |
+| `POST`   | `/api/v1/products`           | Crear producto. Devuelve`409` si el SKU ya existe                        |
+| `GET`    | `/api/v1/products/{id}`      | Consultar producto por identificador                                       |
+| `PATCH`  | `/api/v1/products/{id}`      | Actualización parcial: solo cambian los campos enviados                   |
+| `DELETE` | `/api/v1/products/{id}`      | Borrado lógico (`is_active = false`). Devuelve `204`                  |
+| `POST`   | `/api/v1/orders`             | Registrar pedido. Calcula el total y descuenta inventario                  |
+| `GET`    | `/api/v1/orders`             | Listado paginado, filtrable por`customer` y `status`                   |
+| `GET`    | `/api/v1/orders/{id}`        | Consultar pedido por identificador                                         |
+| `PATCH`  | `/api/v1/orders/{id}/status` | Cambiar estado validando la transición                                    |
 
 ### Estados de un pedido
 
@@ -316,11 +316,11 @@ solo bloque de código:
 { "detail": "Stock insuficiente para 'RTX 4070': se solicitaron 99 unidades y solo hay 8 disponibles.", "code": "insufficient_stock" }
 ```
 
-| Código HTTP | Cuándo ocurre |
-|---|---|
-| `404` | `product_not_found`, `order_not_found` |
-| `409` | `duplicate_sku`, `insufficient_stock`, `inactive_product`, `invalid_status_transition` |
-| `422` | Validación de Pydantic: identificador mal formado, campos inválidos o faltantes |
+| Código HTTP | Cuándo ocurre                                                                                 |
+| ------------ | ---------------------------------------------------------------------------------------------- |
+| `404`      | `product_not_found`, `order_not_found`                                                     |
+| `409`      | `duplicate_sku`, `insufficient_stock`, `inactive_product`, `invalid_status_transition` |
+| `422`      | Validación de Pydantic: identificador mal formado, campos inválidos o faltantes              |
 
 ---
 
@@ -361,13 +361,13 @@ transiciones de estado y el borrado lógico.
 El backend se despliega en **Render** a partir de [`render.yaml`](render.yaml), que deja la
 configuracion versionada junto al codigo en lugar de repartida por un panel.
 
-| Ajuste | Valor | Por que |
-|---|---|---|
-| `rootDir` | `techgear_api` | El repositorio es un monorepo: Render construye solo el backend |
-| `buildCommand` | `pip install -r requirements.txt` | Solo dependencias de produccion |
-| `startCommand` | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` | `--host 0.0.0.0` es obligatorio: por defecto uvicorn escucha en `127.0.0.1` y Render no podria enrutar el trafico. `$PORT` lo asigna la plataforma |
-| `healthCheckPath` | `/health` | Ya existia y comprueba tambien la conexion con Atlas |
-| `.python-version` | `3.11.9` | Sin fijarla, Render compila con su version por defecto (hoy 3.14.3), distinta a la de desarrollo |
+| Ajuste              | Valor                                                                                                                                                                                                           | Por que                                                                                          |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `rootDir`         | `techgear_api`                                                                                                                                                                                                | El repositorio es un monorepo: Render construye solo el backend                                  |
+| `buildCommand`    | `pip install -r requirements.txt`                                                                                                                                                                             | Solo dependencias de produccion                                                                  |
+| `startCommand`    | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` | `--host 0.0.0.0` es obligatorio: por defecto uvicorn escucha en `127.0.0.1` y Render no podria enrutar el trafico. `$PORT` lo asigna la plataforma |                                                                                                  |
+| `healthCheckPath` | `/health`                                                                                                                                                                                                     | Ya existia y comprueba tambien la conexion con Atlas                                             |
+| `.python-version` | `3.11.9`                                                                                                                                                                                                      | Sin fijarla, Render compila con su version por defecto (hoy 3.14.3), distinta a la de desarrollo |
 
 `MONGODB_URL` se declara con `sync: false`: Render la pide al crear el servicio y la guarda
 cifrada. **Nunca se escribe en el repositorio.**
