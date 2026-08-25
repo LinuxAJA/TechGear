@@ -1,0 +1,28 @@
+{% load catalog_tags %}
+{% comment %}
+    Navegacion por categorias en fichas. Complementa al desplegable del
+    formulario: el desplegable sirve para combinar filtros, estas fichas hacen
+    visible de un vistazo que categorias existen y cual esta activa.
+
+    Al cambiar de categoria se vuelve a la pagina 1: seguir en la pagina 3 de un
+    listado que ahora tiene menos resultados dejaria la vista vacia.
+{% endcomment %}
+<nav class="mb-6 flex flex-wrap gap-2" aria-label="Categorias">
+
+    <a href="{% query_string category=None page=None %}"
+       class="rounded-full border px-3 py-1.5 text-sm font-medium transition
+              {% if not selected_category %}border-brand-600 bg-brand-600 text-white
+              {% else %}border-slate-300 bg-white text-slate-600 hover:border-brand-500 hover:text-brand-600{% endif %}">
+        Todas
+    </a>
+
+    {% for value, label in categories %}
+        <a href="{% query_string category=value page=None %}"
+           {% if value == selected_category %}aria-current="true"{% endif %}
+           class="rounded-full border px-3 py-1.5 text-sm font-medium transition
+                  {% if value == selected_category %}border-brand-600 bg-brand-600 text-white
+                  {% else %}border-slate-300 bg-white text-slate-600 hover:border-brand-500 hover:text-brand-600{% endif %}">
+            {{ label }}
+        </a>
+    {% endfor %}
+</nav>

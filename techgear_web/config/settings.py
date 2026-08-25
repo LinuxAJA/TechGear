@@ -150,3 +150,10 @@ TECHGEAR_API_BASE_URL = os.environ.get(
 # Segundos de espera por peticion. Sin timeout, si la API se cuelga el portal
 # se cuelga con ella.
 TECHGEAR_API_TIMEOUT = int(os.environ.get('TECHGEAR_API_TIMEOUT', 10))
+
+# Politica de reintentos del cliente HTTP. Los valores por defecto sirven para
+# desarrollo local; contra la API desplegada en el plan gratuito de Render hay
+# que ampliarlos, porque el servicio se duerme tras 15 minutos sin trafico y
+# tarda cerca de un minuto en despertar (ver .env.example).
+TECHGEAR_API_RETRIES = int(os.environ.get('TECHGEAR_API_RETRIES', 3))
+TECHGEAR_API_BACKOFF = float(os.environ.get('TECHGEAR_API_BACKOFF', 0.3))

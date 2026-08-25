@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load catalog_tags %}
 
 {% block title %}Catalogo | TechGear{% endblock %}
 
@@ -9,15 +10,18 @@
     </header>
 
     {% include "includes/_search_form.html" %}
+    {% include "includes/_category_nav.html" %}
 
     {% if products %}
         <p class="mb-4 text-sm text-slate-500">
             {{ total }} producto{{ total|pluralize }} encontrado{{ total|pluralize }}
+            {% if search %}para <strong class="text-slate-700">&laquo;{{ search }}&raquo;</strong>{% endif %}
         </p>
 
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {% for product in products %}
-                {% include "includes/_product_card.html" %}
+                {# inclusion_tag: la tarjeta recibe el producto de forma explicita. #}
+                {% product_card product %}
             {% endfor %}
         </div>
 

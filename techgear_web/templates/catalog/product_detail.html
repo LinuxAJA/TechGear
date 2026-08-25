@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load formatting catalog_tags %}
+
+{% block title %}{{ product.name }} | TechGear{% endblock %}
+
+{% block content %}
+
+    <nav class="mb-6 text-sm text-slate-500" aria-label="Migas de pan">
+        <a href="{% url 'catalog:product_list' %}" class="hover:text-brand-600">Catalogo</a>
+        <span class="mx-2" aria-hidden="true">/</span>
+        <a href="{% url 'catalog:product_list' %}?category={{ product.category }}" class="hover:text-brand-600">
+            {{ product.category|categoria }}
+        </a>
+        <span class="mx-2" aria-hidden="true">/</span>
+        <span class="text-slate-700">{{ product.name }}</span>
+    </nav>
+
+    <div class="grid gap-8 lg:grid-cols-2">
+
+        <div class="flex h-80 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+            {% if product.image_url %}
+                <img src="{{ product.image_url }}" alt="{{ product.name }}" class="h-full w-full object-cover">
+            {% else %}
+                <span class="text-slate-400" aria-hidden="true">Sin imagen disponible</span>
+            {% endif %}
+        </div>
+
+        <div class="flex flex-col">
+            <div class="mb-3 flex flex-wrap items-center gap-2">
+                <span class="inline-flex rounded-full bg-brand-500/10 px-3 py-1 text-sm font-medium text-brand-600">
+                    {{ product.category|categoria }}
+                </span>
+                <span class="inline-flex rounded-full px-3 py-1 text-sm font-medium {{ product.stock|stock_classes }}">
+                    {{ product.stock|stock_label }}
+                </span>
+                {% if not product.is_active %}
+                    <span class="inline-flex rounded-full bg-slate-200 px-3 py-1 text-sm font-medium text-slate-600">
+                        Retirado del catalogo
+                    </span>
+                {% endif %}
+            </div>
+
+            <h1 class="mb-2 text-3xl font-bold tracking-tight text-slate-900">{{ product.name }}</h1>
+            <p class="mb-6 text-sm text-slate-500">SKU {{ product.sku }}</p>
+
+            <p class="mb-8 text-4xl font-bold text-slate-900">{{ product.price|cop }}</p>
+
+            {% if product.description %}
+                <div class="mb-8">
+                    <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Descripcion</h2>
+                    <p class="leading-relaxed text-slate-700">{{ product.description }}</p>
+                </div>
+            {% endif %}
+
+            <dl class="mb-8 grid grid-cols-2 gap-4 border-t border-slate-200 pt-6 text-sm">
+                <div>
+                    <dt class="text-slate-500">Unidades en inventario</dt>
+                    <dd class="font-semibold text-slate-900">{{ product.stock }}</dd>
+                </div>
+                <div>
+                    <dt class="text-slate-500">Categoria</dt>
+                    <dd class="font-semibold text-slate-900">{{ product.category|categoria }}</dd>
+                </div>
+            </dl>
+
+            {% comment %}
+                El boton de compra llega con el carrito en sesion, en el bloque
+                de usuarios y pedidos.
+            {% endcomment %}
+            <a href="{% url 'catalog:product_list' %}"
+               class="btn-primary w-fit">Volver al catalogo</a>
+        </div>
+    </div>
+
+{% endblock %}

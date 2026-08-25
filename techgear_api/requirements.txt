@@ -1,18 +1,21 @@
+# Dependencias de PRODUCCION. Es lo unico que se instala en Render.
+# Las dependencias de prueba viven en requirements-dev.txt.
+#
+# Versiones fijadas: el despliegue compila desde cero, y sin fijarlas una
+# publicacion nueva de cualquier libreria podria romper el build sin que haya
+# cambiado una sola linea del proyecto.
+
 # ── Framework y servidor ──────────────────────────────────
-fastapi
-uvicorn[standard]
+fastapi==0.141.1
+uvicorn[standard]==0.52.3
 
 # ── Base de datos: MongoDB Atlas ──────────────────────────
 # Motor es el driver asincrono usado en clase. Todo su uso queda confinado
 # a app/db/mongodb.py y app/repositories/ (ver README, seccion Arquitectura).
-motor
+# Arrastra pymongo, que a su vez incluye dnspython para resolver mongodb+srv://
+motor==3.7.1
 
 # ── Validacion y configuracion ────────────────────────────
-pydantic[email]
-pydantic-settings
-python-dotenv
-
-# ── Pruebas ───────────────────────────────────────────────
-pytest
-pytest-asyncio
-httpx
+pydantic[email]==2.13.4
+pydantic-settings==2.15.0
+python-dotenv==1.2.3

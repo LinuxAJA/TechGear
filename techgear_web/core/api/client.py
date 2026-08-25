@@ -45,11 +45,25 @@ class TechGearAPIClient:
         Solo se reintentan metodos idempotentes: repetir un POST podria crear
         dos pedidos. El backoff exponencial evita golpear un servicio que ya
         esta en problemas.
+
+        Los valores se leen de la configuracion porque el escenario cambia
+        radicalmente segun donde este la API:
+
+        - En local responde en milisegundos y basta con reintentos cortos.
+        - En el plan gratuito de Render el servicio SE DUERME tras 15 minutos
+          sin trafico y tarda cerca de un minuto en despertar, devolviendo 502
+          o 503 mientras tanto. Con la politica corta, la primera visita al
+          portal tras un rato de inactividad mostraria "servicio no disponible"
+          aunque el backend este perfectamente sano.
+
+        Con backoff_factor=2 y 5 intentos, urllib3 espera 0, 2, 4, 8 y 16
+        segundos entre reintentos: 30 segundos acumulados, suficientes para
+        cubrir el arranque en frio sin dejar la peticion colgada para siempre.
         """
         session = requests.Session()
         retry = Retry(
-            total=3,
-            backoff_factor=0.3,
+            total=settings.TECHGEAR_API_RETRIES,
+            backoff_factor=settings.TECHGEAR_API_BACKOFF,
             status_forcelist=(502, 503, 504),
             allowed_methods=frozenset({'GET', 'HEAD', 'OPTIONS'}),
         )
@@ -86,6 +100,11 @@ class TechGearAPIClient:
         except requests.Timeout as error:
             logger.error('Timeout de %ss al llamar a %s', self.timeout, url)
             raise APIUnavailable(f'La API no respondio en {self.timeout} segundos.') from error
+        except requests.exceptions.RetryError as error:
+            # Se agotaron los reintentos contra un servicio que sigue caido o
+            # que tarda mas de lo previsto en despertar.
+            logger.error('Reintentos agotados contra %s', url)
+            raise APIUnavailable('La API no respondio tras varios intentos.') from error
         except requests.ConnectionError as error:
             logger.error('No se pudo conectar con la API en %s', url)
             raise APIUnavailable('No se pudo establecer conexion con la API.') from error

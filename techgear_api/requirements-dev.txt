@@ -1,0 +1,10 @@
+# Dependencias de DESARROLLO y PRUEBAS.
+# Instalan tambien las de produccion, asi que en local basta con:
+#   pip install -r requirements-dev.txt
+
+-r requirements.txt
+
+pytest==9.1.1
+pytest-asyncio==1.4.0
+# httpx se usa para probar la aplicacion ASGI sin levantar un servidor real.
+httpx==0.28.1
