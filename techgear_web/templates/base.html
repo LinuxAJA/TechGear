@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}TechGear{% endblock %}</title>
 
-    {# Tailwind compilado localmente con la CLI. No se usa CDN: el sitio debe
-       verse igual sin conexion y sin depender de un tercero. #}
+    {# Tailwind compilado localmente con la CLI. No se usa CDN: el sitio debe verse igual sin conexion y sin depender de un tercero. #}
     <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
     {% block extra_head %}{% endblock %}
 </head>

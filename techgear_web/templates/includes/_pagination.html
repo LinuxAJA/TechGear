@@ -1,22 +1,33 @@
+{% load catalog_tags %}
 {% if total_pages > 1 %}
-    {# Se conservan los filtros al cambiar de pagina: sin esto, pasar a la
-       pagina 2 perderia la busqueda y el usuario veria el catalogo completo. #}
-    <nav class="mt-10 flex items-center justify-center gap-2 text-sm" aria-label="Paginacion">
+    {% comment %}
+        El tag query_string parte de los parametros reales de la peticion, asi
+        que la busqueda y el filtro se conservan solos al cambiar de pagina.
+    {% endcomment %}
+    <nav class="mt-10 flex items-center justify-center gap-2 text-sm" aria-label="Paginacion del catalogo">
 
         {% if has_previous %}
-            <a href="?page={{ page|add:'-1' }}{% if search %}&q={{ search|urlencode }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}"
-               class="rounded-lg border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-brand-500 hover:text-brand-600">
+            <a href="{% query_string page=page|add:'-1' %}" rel="prev"
+               aria-label="Pagina anterior"
+               class="rounded-lg border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700
+                      hover:border-brand-500 hover:text-brand-600
+                      focus:outline-none focus:ring-2 focus:ring-brand-500">
                 Anterior
             </a>
         {% else %}
             <span class="rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-slate-400">Anterior</span>
         {% endif %}
 
-        <span class="px-3 py-2 text-slate-600">Pagina {{ page }} de {{ total_pages }}</span>
+        <span class="px-3 py-2 text-slate-600" aria-current="page">
+            Pagina {{ page }} de {{ total_pages }}
+        </span>
 
         {% if has_next %}
-            <a href="?page={{ page|add:'1' }}{% if search %}&q={{ search|urlencode }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}"
-               class="rounded-lg border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:border-brand-500 hover:text-brand-600">
+            <a href="{% query_string page=page|add:'1' %}" rel="next"
+               aria-label="Pagina siguiente"
+               class="rounded-lg border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700
+                      hover:border-brand-500 hover:text-brand-600
+                      focus:outline-none focus:ring-2 focus:ring-brand-500">
                 Siguiente
             </a>
         {% else %}

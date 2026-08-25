@@ -1,29 +1,46 @@
-{% load formatting %}
-<article class="card flex flex-col">
+{% load formatting catalog_tags %}
+{% comment %}
+    Renderizada por el inclusion_tag product_card, que le pasa la variable
+    `product` de forma explicita.
 
-    <div class="mb-3 flex h-40 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
+    Ojo: para comentarios de varias lineas hay que usar {% comment %} y no
+    {# #}, que Django solo reconoce dentro de una misma linea.
+{% endcomment %}
+<article class="card group flex flex-col transition hover:border-brand-500 hover:shadow-md">
+
+    <a href="{% url 'catalog:product_detail' product.id %}"
+       class="mb-3 flex h-40 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
         {% if product.image_url %}
-            <img src="{{ product.image_url }}" alt="{{ product.name }}" class="h-full w-full object-cover">
+            <img src="{{ product.image_url }}" alt="{{ product.name }}"
+                 class="h-full w-full object-cover transition group-hover:scale-105">
         {% else %}
-            <span class="text-sm text-slate-400">Sin imagen</span>
+            <span class="text-sm text-slate-400" aria-hidden="true">Sin imagen</span>
         {% endif %}
+    </a>
+
+    <div class="mb-2 flex items-center justify-between gap-2">
+        <span class="inline-flex rounded-full bg-brand-500/10 px-2.5 py-0.5 text-xs font-medium text-brand-600">
+            {{ product.category|categoria }}
+        </span>
+        <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ product.stock|stock_classes }}">
+            {{ product.stock|stock_label }}
+        </span>
     </div>
 
-    <span class="mb-2 inline-flex w-fit rounded-full bg-brand-500/10 px-2.5 py-0.5 text-xs font-medium text-brand-600">
-        {{ product.category|categoria }}
-    </span>
-
-    <h2 class="mb-1 font-semibold leading-snug text-slate-900">{{ product.name }}</h2>
+    <h2 class="mb-1 font-semibold leading-snug text-slate-900">
+        <a href="{% url 'catalog:product_detail' product.id %}" class="hover:text-brand-600">
+            {{ product.name }}
+        </a>
+    </h2>
     <p class="mb-3 text-xs text-slate-500">SKU {{ product.sku }}</p>
 
     <p class="mb-4 line-clamp-2 flex-1 text-sm text-slate-600">{{ product.description }}</p>
 
     <div class="flex items-end justify-between">
         <span class="text-lg font-bold text-slate-900">{{ product.price|cop }}</span>
-        {% if product.stock > 0 %}
-            <span class="text-xs font-medium text-emerald-600">{{ product.stock }} disponibles</span>
-        {% else %}
-            <span class="text-xs font-medium text-red-600">Agotado</span>
-        {% endif %}
+        <a href="{% url 'catalog:product_detail' product.id %}"
+           class="text-sm font-medium text-brand-600 hover:underline">
+            Ver detalle
+        </a>
     </div>
 </article>

@@ -1,0 +1,46 @@
+# Blueprint de Render para el backend de TechGear.
+# https://render.com/docs/blueprint-spec
+#
+# Permite recrear el servicio desde el repositorio en vez de reconfigurarlo a
+# mano en el panel: la infraestructura queda versionada junto al codigo.
+
+services:
+  - type: web
+    name: techgear-api
+    runtime: python
+    plan: free
+
+    # El repositorio es un monorepo. rootDir hace que Render construya solo el
+    # backend, sin necesidad de separar los proyectos.
+    rootDir: techgear_api
+
+    region: oregon
+
+    # Solo dependencias de produccion: las de prueba estan en requirements-dev.txt
+    buildCommand: pip install -r requirements.txt
+
+    # --host 0.0.0.0 es obligatorio: por defecto uvicorn escucha en 127.0.0.1 y
+    # Render no podria enrutar el trafico hacia el contenedor.
+    # $PORT lo asigna Render, no se elige.
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+
+    # Render consulta esta ruta para saber si el servicio esta sano. Ya existe y
+    # comprueba tambien la conexion con MongoDB Atlas.
+    healthCheckPath: /health
+
+    envVars:
+      # sync: false -> Render lo pregunta al crear el Blueprint y lo guarda
+      # cifrado. La credencial NUNCA se escribe en este archivo.
+      - key: MONGODB_URL
+        sync: false
+
+      - key: MONGODB_DB
+        value: techgear_db
+
+      # Origenes permitidos por CORS. Se amplia con la URL del portal cuando se
+      # despliegue el frontend.
+      - key: CORS_ORIGINS
+        value: http://localhost:8000,http://127.0.0.1:8000
+
+      - key: DEBUG
+        value: "False"

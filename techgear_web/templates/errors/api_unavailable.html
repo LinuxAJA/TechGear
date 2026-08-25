@@ -3,9 +3,11 @@
 {% block title %}Servicio no disponible | TechGear{% endblock %}
 
 {% block content %}
-    {# Si la API esta caida el usuario ve esta pagina, no una traza de error.
-       Un fallo del microservicio es un estado esperado del sistema, no un bug
-       del portal. #}
+    {% comment %}
+        Si la API esta caida el usuario ve esta pagina, no una traza de error.
+        Un fallo del microservicio es un estado esperado del sistema, no un bug
+        del portal.
+    {% endcomment %}
     <div class="card mx-auto max-w-xl text-center">
         <h1 class="mb-3 text-2xl font-bold text-slate-900">El catalogo no esta disponible</h1>
 

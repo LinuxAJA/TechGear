@@ -11,6 +11,7 @@ import logging
 
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
+from pymongo.errors import PyMongoError
 
 from app.core.exceptions import ConflictError, DomainError, NotFoundError
 from app.schemas.common import ErrorResponse
@@ -39,6 +40,26 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(ConflictError)
     async def handle_conflict(request: Request, exc: ConflictError) -> JSONResponse:
         return _build_response(status.HTTP_409_CONFLICT, exc)
+
+
+    @app.exception_handler(PyMongoError)
+    async def handle_database_error(request: Request, exc: PyMongoError) -> JSONResponse:
+        """Traduce los fallos de MongoDB a un 503 con el formato uniforme.
+
+        Sin este manejador, un corte transitorio hacia Atlas (por ejemplo un
+        ServerSelectionTimeoutError) sale como un 500 con traza. Son fallos de
+        INFRAESTRUCTURA, no peticiones invalidas: 503 le dice al cliente que
+        vuelva a intentarlo, y el portal Django ya sabe presentar ese caso.
+
+        Se registra el detalle tecnico en el log, pero no se expone al cliente:
+        el mensaje de pymongo incluye los nombres de host del cluster.
+        """
+        logger.error("Fallo de MongoDB en %s: %s", request.url.path, exc)
+        payload = ErrorResponse(
+            detail="La base de datos no esta disponible en este momento. Intentalo de nuevo.",
+            code="database_unavailable",
+        )
+        return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content=payload.model_dump())
 
     @app.exception_handler(DomainError)
     async def handle_domain_error(request: Request, exc: DomainError) -> JSONResponse:

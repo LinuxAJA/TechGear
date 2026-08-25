@@ -1,47 +1,53 @@
 """Vistas del catalogo.
 
-Vista principal del portal: consume el catalogo de la API de TechGear y lo
-renderiza con el sistema de plantillas de Django. Es la "V" y la "T" del patron
-MVT; la "M" es remota (ver models.py).
+Consumen el catalogo de la API de TechGear y lo renderizan con el sistema de
+plantillas de Django. Son la "V" y la "T" del patron MVT; la "M" es remota
+(ver models.py).
 
-Se usa TemplateView y no ListView porque ListView espera un QuerySet de la base
-de datos local, y aqui los productos llegan por HTTP.
+Se usa TemplateView y no ListView/DetailView porque esas clases esperan un
+QuerySet de la base de datos local, y aqui los productos llegan por HTTP.
 """
 
 import logging
 
+from django.http import Http404
 from django.shortcuts import render
 from django.views.generic import TemplateView
 
 from apps.catalog.constants import CATEGORIES
 from core.api import products as products_api
-from core.api.exceptions import APIError, APIUnavailable
+from core.api.exceptions import APIError, APINotFound, APIUnavailable
 
 logger = logging.getLogger(__name__)
 
 
-class ProductListView(TemplateView):
-    """Vista principal: listado paginado del catalogo."""
+class APIErrorHandlingMixin:
+    """Convierte los fallos de la API en paginas utiles.
 
-    template_name = 'catalog/product_list.html'
+    Que la API no responda no es un error del programa: es un estado esperado
+    del sistema, y el usuario debe ver una pagina que lo explique en vez de una
+    traza. Se captura alrededor de get_context_data porque es ahi donde ocurren
+    las llamadas HTTP.
+    """
 
     def get(self, request, *args, **kwargs):
-        """Renderiza el catalogo o una pagina de error si la API no responde.
-
-        Se captura aqui y no dentro de get_context_data porque un fallo de la
-        API no es un error del programa: es un estado esperado del sistema y el
-        usuario debe ver una pagina util, no una traza.
-        """
         try:
             context = self.get_context_data(**kwargs)
         except APIUnavailable as error:
-            logger.warning('Catalogo no disponible: %s', error.detail)
+            # Subclase de APIError: debe ir primero o nunca se alcanzaria.
+            logger.warning('API no disponible en %s: %s', request.path, error.detail)
             return render(request, 'errors/api_unavailable.html', {'detail': error.detail}, status=503)
         except APIError as error:
-            logger.error('Error al consultar el catalogo: %s', error.detail)
+            logger.error('Error de la API en %s: %s', request.path, error.detail)
             return render(request, 'errors/api_unavailable.html', {'detail': error.detail}, status=502)
 
         return self.render_to_response(context)
+
+
+class ProductListView(APIErrorHandlingMixin, TemplateView):
+    """Vista principal: listado paginado del catalogo."""
+
+    template_name = 'catalog/product_list.html'
 
     def get_context_data(self, **kwargs):
         """Consulta la API y arma el contexto de la plantilla."""
@@ -78,3 +84,25 @@ class ProductListView(TemplateView):
             return max(int(self.request.GET.get('page', 1)), 1)
         except (TypeError, ValueError):
             return 1
+
+
+class ProductDetailView(APIErrorHandlingMixin, TemplateView):
+    """Ficha de un producto."""
+
+    template_name = 'catalog/product_detail.html'
+
+    def get_context_data(self, **kwargs):
+        """Consulta un producto puntual de la API."""
+        context = super().get_context_data(**kwargs)
+        product_id = kwargs['product_id']
+
+        try:
+            product = products_api.get_product(product_id)
+        except APINotFound as error:
+            # Se traduce a Http404 para que Django use la pagina 404 del sitio.
+            # Debe capturarse aqui: APINotFound es subclase de APIError y, de no
+            # hacerlo, el mixin lo mostraria como un fallo del servicio.
+            raise Http404('El producto solicitado no existe.') from error
+
+        context['product'] = product
+        return context
