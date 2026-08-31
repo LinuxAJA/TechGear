@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load formatting %}
+
+{% block title %}Pedido {{ order.order_number }} | TechGear{% endblock %}
+
+{% block content %}
+    <nav class="mb-6 text-sm text-slate-500" aria-label="Migas de pan">
+        <a href="{% url 'orders:order_list' %}" class="hover:text-brand-600">Mis pedidos</a>
+        <span class="mx-2" aria-hidden="true">/</span>
+        <span class="text-slate-700">{{ order.order_number }}</span>
+    </nav>
+
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Pedido {{ order.order_number }}</h1>
+            <p class="text-sm text-slate-500">Realizado el {{ order.created_at|iso_datetime }}</p>
+        </div>
+        <span class="rounded-full bg-slate-100 px-4 py-1.5 text-sm font-semibold uppercase tracking-wide text-slate-700">
+            {{ order.status }}
+        </span>
+    </div>
+
+    <div class="grid gap-8 lg:grid-cols-3">
+        <div class="lg:col-span-2">
+            <div class="card mb-6">
+                <h2 class="mb-4 text-lg font-semibold text-slate-900">Productos</h2>
+                <ul class="divide-y divide-slate-100 text-sm">
+                    {% for item in order.items %}
+                        <li class="flex justify-between gap-4 py-3">
+                            <div>
+                                <p class="font-medium text-slate-900">{{ item.name }}</p>
+                                <p class="text-xs text-slate-500">SKU {{ item.sku }} &middot; {{ item.unit_price|cop }} c/u</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-slate-600">&times; {{ item.quantity }}</p>
+                                <p class="font-semibold text-slate-900">{{ item.subtotal|cop }}</p>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <div class="mt-4 flex justify-between border-t border-slate-200 pt-4 text-lg font-bold text-slate-900">
+                    <span>Total</span>
+                    <span>{{ order.total|cop }}</span>
+                </div>
+            </div>
+
+            {% if order.notes %}
+                <div class="card">
+                    <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Observaciones</h2>
+                    <p class="text-slate-700">{{ order.notes }}</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div>
+            <div class="card mb-6">
+                <h2 class="mb-3 text-lg font-semibold text-slate-900">Datos de entrega</h2>
+                <dl class="space-y-2 text-sm">
+                    <div>
+                        <dt class="text-slate-500">Nombre</dt>
+                        <dd class="font-medium text-slate-900">{{ order.customer.full_name }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-slate-500">Correo</dt>
+                        <dd class="font-medium text-slate-900">{{ order.customer.email }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-slate-500">Telefono</dt>
+                        <dd class="font-medium text-slate-900">{{ order.customer.phone }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-slate-500">Direccion</dt>
+                        <dd class="font-medium text-slate-900">{{ order.customer.address }}, {{ order.customer.city }}</dd>
+                    </div>
+                </dl>
+            </div>
+
+            {% if order.status == 'pending' or order.status == 'paid' %}
+                <form method="post" action="{% url 'orders:order_cancel' order.id %}"
+                      onsubmit="return confirm('¿Seguro que quieres cancelar este pedido? Las unidades volveran al inventario.');">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="w-full rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium
+                                   text-red-700 hover:bg-red-100">
+                        Cancelar pedido
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

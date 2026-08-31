@@ -5,9 +5,11 @@ paquete debe tener __init__.py: las etiquetas personalizadas solo se buscan
 dentro de aplicaciones instaladas.
 """
 
+from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
 from django import template
+from django.utils import timezone
 
 register = template.Library()
 
@@ -49,3 +51,25 @@ def categoria(value: object) -> str:
         'accessory': 'Accesorios',
     }
     return etiquetas.get(str(value), str(value).capitalize())
+
+
+@register.filter
+def iso_datetime(value: object) -> str:
+    """Formatea una fecha ISO 8601 (como la devuelve la API) de forma legible.
+
+    La API serializa las fechas como texto ISO 8601 en UTC. Al llegar como
+    JSON, Django no las reconoce como objetos de fecha automaticamente (son
+    texto plano), asi que el filtro |date de Django no funciona sobre ellas:
+    hay que parsearlas primero. De paso se convierten a la zona horaria del
+    proyecto (America/Bogota) en vez de mostrar la hora UTC cruda.
+    """
+    if not value:
+        return ''
+    try:
+        fecha = datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+    except (ValueError, TypeError):
+        return str(value)
+
+    if timezone.is_aware(fecha):
+        fecha = timezone.localtime(fecha)
+    return fecha.strftime('%d/%m/%Y %H:%M')

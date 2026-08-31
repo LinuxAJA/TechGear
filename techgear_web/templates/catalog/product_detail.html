@@ -63,12 +63,27 @@
                 </div>
             </dl>
 
-            {% comment %}
-                El boton de compra llega con el carrito en sesion, en el bloque
-                de usuarios y pedidos.
-            {% endcomment %}
-            <a href="{% url 'catalog:product_list' %}"
-               class="btn-primary w-fit">Volver al catalogo</a>
+            {% if product.is_active and product.stock > 0 %}
+                <form method="post" action="{% url 'orders:cart_add' product.id %}" class="mb-6 flex items-end gap-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <div>
+                        <label for="quantity" class="mb-1 block text-sm font-medium text-slate-700">Cantidad</label>
+                        <input type="number" id="quantity" name="quantity" value="1" min="1" max="{{ product.stock }}"
+                               class="w-24 rounded-lg border border-slate-300 px-3 py-2 text-sm
+                                      focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    </div>
+                    <button type="submit" class="btn-primary">Agregar al carrito</button>
+                </form>
+            {% else %}
+                <p class="mb-6 rounded-lg bg-slate-100 px-4 py-3 text-sm font-medium text-slate-600">
+                    Este producto no esta disponible para la venta en este momento.
+                </p>
+            {% endif %}
+
+            <a href="{% url 'catalog:product_list' %}" class="text-sm font-medium text-slate-600 hover:text-brand-600">
+                &larr; Volver al catalogo
+            </a>
         </div>
     </div>
 

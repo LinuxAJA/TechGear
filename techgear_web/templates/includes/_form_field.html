@@ -1,0 +1,22 @@
+{% load form_helpers %}
+{# Uso: {% include "includes/_form_field.html" with field=form.username %} #}
+<div class="mb-4">
+    {% if field.field.widget.input_type == 'checkbox' %}
+        <label class="flex items-center gap-2 text-sm font-medium text-slate-700">
+            {{ field|add_class:"h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" }}
+            {{ field.label }}
+        </label>
+    {% else %}
+        <label for="{{ field.id_for_label }}" class="mb-1 block text-sm font-medium text-slate-700">
+            {{ field.label }}{% if field.field.required %} *{% endif %}
+        </label>
+        {{ field|add_class:"w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" }}
+    {% endif %}
+
+    {% if field.help_text %}
+        <p class="mt-1 text-xs text-slate-500">{{ field.help_text }}</p>
+    {% endif %}
+    {% for error in field.errors %}
+        <p class="mt-1 text-xs font-medium text-red-600">{{ error }}</p>
+    {% endfor %}
+</div>

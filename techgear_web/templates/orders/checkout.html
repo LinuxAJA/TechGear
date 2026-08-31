@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load formatting %}
+
+{% block title %}Checkout | TechGear{% endblock %}
+
+{% block content %}
+    <h1 class="mb-6 text-3xl font-bold tracking-tight text-slate-900">Confirmar pedido</h1>
+
+    <div class="grid gap-8 lg:grid-cols-3">
+        <div class="lg:col-span-2">
+            {% include "includes/_form_errors.html" %}
+
+            {% comment %}
+                Formulario HTML capturado en el Template y enviado con POST hacia
+                el endpoint /orders de FastAPI (ver CheckoutView.form_valid en
+                apps/orders/views.py). El precio nunca viaja desde aqui.
+            {% endcomment %}
+            <form method="post" class="card">
+                {% csrf_token %}
+                {% for field in form %}
+                    {% include "includes/_form_field.html" with field=field %}
+                {% endfor %}
+                <button type="submit" class="btn-primary w-full">Confirmar pedido</button>
+            </form>
+        </div>
+
+        <div>
+            <div class="card">
+                <h2 class="mb-4 text-lg font-semibold text-slate-900">Resumen del pedido</h2>
+                <ul class="mb-4 divide-y divide-slate-100 text-sm">
+                    {% for line in lines %}
+                        <li class="flex justify-between gap-2 py-2">
+                            <span class="text-slate-600">{{ line.product.name }} &times; {{ line.quantity }}</span>
+                            <span class="whitespace-nowrap font-medium text-slate-900">{{ line.subtotal|cop }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <div class="flex justify-between border-t border-slate-200 pt-4 font-bold text-slate-900">
+                    <span>Total</span>
+                    <span>{{ total|cop }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

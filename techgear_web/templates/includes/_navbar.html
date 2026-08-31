@@ -1,16 +1,65 @@
 <header class="border-b border-slate-200 bg-white">
-    <nav class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+    <nav class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4">
         <a href="{% url 'catalog:product_list' %}" class="text-xl font-bold tracking-tight text-brand-600">
             Tech<span class="text-slate-800">Gear</span>
         </a>
 
-        <ul class="flex items-center gap-6 text-sm font-medium">
+        <ul class="flex flex-wrap items-center gap-5 text-sm font-medium">
             <li>
                 <a href="{% url 'catalog:product_list' %}" class="text-slate-600 hover:text-brand-600">
                     Catalogo
                 </a>
             </li>
-            {# El carrito y la sesion de usuario llegan en la Clase 4. #}
+
+            {% if user.is_authenticated %}
+                <li>
+                    <a href="{% url 'orders:order_list' %}" class="text-slate-600 hover:text-brand-600">
+                        Mis pedidos
+                    </a>
+                </li>
+                {% if user.is_staff %}
+                    <li>
+                        <a href="{% url 'catalog:manage_product_list' %}" class="text-slate-600 hover:text-brand-600">
+                            Gestion
+                        </a>
+                    </li>
+                {% endif %}
+            {% endif %}
+
+            <li>
+                <a href="{% url 'orders:cart' %}"
+                   class="relative flex items-center gap-1 text-slate-600 hover:text-brand-600"
+                   aria-label="Carrito de compras">
+                    Carrito
+                    {% if cart_items_count %}
+                        <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full
+                                     bg-brand-600 px-1 text-xs font-bold text-white">
+                            {{ cart_items_count }}
+                        </span>
+                    {% endif %}
+                </a>
+            </li>
+
+            {% if user.is_authenticated %}
+                <li class="flex items-center gap-3 border-l border-slate-200 pl-5">
+                    <span class="text-slate-500">{{ user.username }}</span>
+                    <form method="post" action="{% url 'accounts:logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="font-medium text-slate-600 hover:text-brand-600">
+                            Salir
+                        </button>
+                    </form>
+                </li>
+            {% else %}
+                <li class="flex items-center gap-3 border-l border-slate-200 pl-5">
+                    <a href="{% url 'accounts:login' %}" class="text-slate-600 hover:text-brand-600">
+                        Ingresar
+                    </a>
+                    <a href="{% url 'accounts:register' %}" class="btn-primary px-3 py-1.5 text-sm">
+                        Registrarme
+                    </a>
+                </li>
+            {% endif %}
         </ul>
     </nav>
 </header>

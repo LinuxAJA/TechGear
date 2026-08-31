@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar sesion | TechGear{% endblock %}
+
+{% block content %}
+    <div class="card mx-auto max-w-md">
+        <h1 class="mb-6 text-2xl font-bold text-slate-900">Iniciar sesion</h1>
+
+        {% include "includes/_form_errors.html" %}
+
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                {% include "includes/_form_field.html" with field=field %}
+            {% endfor %}
+            <input type="hidden" name="next" value="{{ next }}">
+            <button type="submit" class="btn-primary w-full">Ingresar</button>
+        </form>
+
+        <p class="mt-6 text-center text-sm text-slate-500">
+            ¿No tienes cuenta?
+            <a href="{% url 'accounts:register' %}" class="font-medium text-brand-600 hover:underline">
+                Registrate
+            </a>
+        </p>
+    </div>
+{% endblock %}

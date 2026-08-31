@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Crear cuenta | TechGear{% endblock %}
+
+{% block content %}
+    <div class="card mx-auto max-w-md">
+        <h1 class="mb-6 text-2xl font-bold text-slate-900">Crear cuenta</h1>
+
+        {% include "includes/_form_errors.html" %}
+
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                {% include "includes/_form_field.html" with field=field %}
+            {% endfor %}
+            <button type="submit" class="btn-primary w-full">Crear cuenta</button>
+        </form>
+
+        <p class="mt-6 text-center text-sm text-slate-500">
+            ¿Ya tienes cuenta?
+            <a href="{% url 'accounts:login' %}" class="font-medium text-brand-600 hover:underline">
+                Inicia sesion
+            </a>
+        </p>
+    </div>
+{% endblock %}

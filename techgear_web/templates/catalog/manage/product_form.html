@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}{% if modo == 'crear' %}Nuevo producto{% else %}Editar producto{% endif %} | TechGear{% endblock %}
+
+{% block content %}
+    <nav class="mb-6 text-sm text-slate-500" aria-label="Migas de pan">
+        <a href="{% url 'catalog:manage_product_list' %}" class="hover:text-brand-600">Gestion de productos</a>
+        <span class="mx-2" aria-hidden="true">/</span>
+        <span class="text-slate-700">{% if modo == 'crear' %}Nuevo{% else %}{{ product.name }}{% endif %}</span>
+    </nav>
+
+    <h1 class="mb-6 text-2xl font-bold tracking-tight text-slate-900">
+        {% if modo == 'crear' %}Nuevo producto{% else %}Editar producto{% endif %}
+    </h1>
+
+    {% include "includes/_form_errors.html" %}
+
+    <form method="post" class="card max-w-xl">
+        {% csrf_token %}
+        {% for field in form %}
+            {% include "includes/_form_field.html" with field=field %}
+        {% endfor %}
+        <button type="submit" class="btn-primary w-full">
+            {% if modo == 'crear' %}Crear producto{% else %}Guardar cambios{% endif %}
+        </button>
+    </form>
+{% endblock %}

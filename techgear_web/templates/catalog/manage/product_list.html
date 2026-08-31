@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load formatting %}
+
+{% block title %}Gestion de productos | TechGear{% endblock %}
+
+{% block content %}
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h1 class="text-3xl font-bold tracking-tight text-slate-900">Gestion de productos</h1>
+        <a href="{% url 'catalog:manage_product_create' %}" class="btn-primary">Nuevo producto</a>
+    </div>
+
+    {% if products %}
+        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="w-full text-left text-sm">
+                <thead class="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                        <th class="px-4 py-3">SKU</th>
+                        <th class="px-4 py-3">Nombre</th>
+                        <th class="px-4 py-3">Categoria</th>
+                        <th class="px-4 py-3">Precio</th>
+                        <th class="px-4 py-3">Stock</th>
+                        <th class="px-4 py-3">Estado</th>
+                        <th class="px-4 py-3"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                        <tr class="border-b border-slate-100 last:border-0">
+                            <td class="px-4 py-3 font-mono text-xs text-slate-500">{{ product.sku }}</td>
+                            <td class="px-4 py-3 font-medium text-slate-900">{{ product.name }}</td>
+                            <td class="px-4 py-3 text-slate-600">{{ product.category|categoria }}</td>
+                            <td class="px-4 py-3 text-slate-600">{{ product.price|cop }}</td>
+                            <td class="px-4 py-3 text-slate-600">{{ product.stock }}</td>
+                            <td class="px-4 py-3">
+                                {% if product.is_active %}
+                                    <span class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                                        Activo
+                                    </span>
+                                {% else %}
+                                    <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+                                        Retirado
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-right">
+                                <div class="flex justify-end gap-3">
+                                    <a href="{% url 'catalog:manage_product_update' product.id %}"
+                                       class="text-sm font-medium text-brand-600 hover:underline">
+                                        Editar
+                                    </a>
+                                    {% if product.is_active %}
+                                        <form method="post" action="{% url 'catalog:manage_product_delete' product.id %}"
+                                              onsubmit="return confirm('¿Retirar «{{ product.name }}» del catalogo?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="text-sm font-medium text-red-600 hover:underline">
+                                                Retirar
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="card text-center">
+            <p class="text-slate-600">Todavia no hay productos registrados.</p>
+        </div>
+    {% endif %}
+{% endblock %}

@@ -42,7 +42,37 @@ def list_products(
 def get_product(product_id: str) -> dict[str, Any]:
     """Consulta un producto por su identificador.
 
-    Lanza APINotFound si no existe. Se usa a partir de la Clase 4, en la vista
-    de detalle y al armar el carrito.
+    Lanza APINotFound si no existe. Se usa en la vista de detalle y al armar
+    el carrito.
     """
     return get_client().get(f'/products/{product_id}')
+
+
+def list_products_for_management() -> dict[str, Any]:
+    """Lista TODOS los productos, incluidos los retirados del catalogo.
+
+    Se usa solo en la seccion de gestion (Clase 5): el listado publico filtra
+    is_active=True por defecto y ahi no serviria para ver, ni reactivar, un
+    producto que ya fue dado de baja.
+    """
+    return get_client().get('/products', params={'limit': 100, 'only_active': False})
+
+
+def create_product(data: dict[str, Any]) -> dict[str, Any]:
+    """Crea un producto. Lanza APIValidationError (409) si el SKU ya existe."""
+    return get_client().post('/products', data)
+
+
+def update_product(product_id: str, changes: dict[str, Any]) -> dict[str, Any]:
+    """Actualiza parcialmente un producto.
+
+    `changes` debe llevar solo los campos que realmente cambiaron: la API
+    aplica exclude_unset=True, asi que enviar un campo con su mismo valor no
+    tiene efecto, pero enviar de mas puede pisar cambios concurrentes.
+    """
+    return get_client().patch(f'/products/{product_id}', changes)
+
+
+def delete_product(product_id: str) -> None:
+    """Retira un producto del catalogo (borrado logico en la API)."""
+    get_client().delete(f'/products/{product_id}')

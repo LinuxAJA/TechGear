@@ -1,0 +1,16 @@
+{% comment %}
+    Errores que no pertenecen a un campo en concreto: form.add_error(None, ...).
+    Es aqui donde aparecen los mensajes 409/422 que devuelve la API (stock
+    insuficiente, SKU duplicado sin campo claro, producto retirado, etc).
+
+    OJO: {# #} de Django solo es comentario dentro de UNA linea; partido en
+    varias, el texto se filtra literalmente al HTML (ya paso una vez en la
+    Clase 4). Por eso este bloque usa {% comment %}.
+{% endcomment %}
+{% if form.non_field_errors %}
+    <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+        {% endfor %}
+    </div>
+{% endif %}

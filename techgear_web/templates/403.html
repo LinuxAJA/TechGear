@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Acceso denegado | TechGear{% endblock %}
+
+{% block content %}
+    <div class="card mx-auto max-w-xl text-center">
+        <p class="mb-2 text-5xl font-bold text-brand-600">403</p>
+        <h1 class="mb-3 text-2xl font-bold text-slate-900">Acceso denegado</h1>
+        <p class="mb-4 text-slate-600">No tienes permisos para ver esta pagina.</p>
+        <a href="{% url 'catalog:product_list' %}" class="btn-primary inline-block">Ir al catalogo</a>
+    </div>
+{% endblock %}

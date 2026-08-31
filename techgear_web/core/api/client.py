@@ -84,6 +84,14 @@ class TechGearAPIClient:
         """Peticion PATCH a la API."""
         return self._request('PATCH', path, json=payload)
 
+    def delete(self, path: str) -> Any:
+        """Peticion DELETE a la API.
+
+        La API responde 204 sin cuerpo; _handle_response ya devuelve None
+        ante ese codigo, asi que no hace falta tratamiento especial aqui.
+        """
+        return self._request('DELETE', path)
+
     def _request(self, method: str, path: str, **kwargs: Any) -> Any:
         """Ejecuta la peticion y traduce el resultado.
 
