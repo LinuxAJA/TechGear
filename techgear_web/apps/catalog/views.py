@@ -10,38 +10,20 @@ QuerySet de la base de datos local, y aqui los productos llegan por HTTP.
 
 import logging
 
+from django.contrib import messages
 from django.http import Http404
-from django.shortcuts import render
-from django.views.generic import TemplateView
+from django.shortcuts import redirect
+from django.urls import reverse_lazy
+from django.views import View
+from django.views.generic import FormView, TemplateView
 
 from apps.catalog.constants import CATEGORIES
+from apps.catalog.forms import ProductCreateForm, ProductUpdateForm
 from core.api import products as products_api
-from core.api.exceptions import APIError, APINotFound, APIUnavailable
+from core.api.exceptions import APINotFound, APIUnavailable, APIValidationError
+from core.mixins import APIErrorHandlingMixin, StaffRequiredMixin
 
 logger = logging.getLogger(__name__)
-
-
-class APIErrorHandlingMixin:
-    """Convierte los fallos de la API en paginas utiles.
-
-    Que la API no responda no es un error del programa: es un estado esperado
-    del sistema, y el usuario debe ver una pagina que lo explique en vez de una
-    traza. Se captura alrededor de get_context_data porque es ahi donde ocurren
-    las llamadas HTTP.
-    """
-
-    def get(self, request, *args, **kwargs):
-        try:
-            context = self.get_context_data(**kwargs)
-        except APIUnavailable as error:
-            # Subclase de APIError: debe ir primero o nunca se alcanzaria.
-            logger.warning('API no disponible en %s: %s', request.path, error.detail)
-            return render(request, 'errors/api_unavailable.html', {'detail': error.detail}, status=503)
-        except APIError as error:
-            logger.error('Error de la API en %s: %s', request.path, error.detail)
-            return render(request, 'errors/api_unavailable.html', {'detail': error.detail}, status=502)
-
-        return self.render_to_response(context)
 
 
 class ProductListView(APIErrorHandlingMixin, TemplateView):
@@ -106,3 +88,144 @@ class ProductDetailView(APIErrorHandlingMixin, TemplateView):
 
         context['product'] = product
         return context
+
+
+# ── Gestion de productos (seccion staff) ──────────────────────────────────
+# Ejercita los cuatro verbos del CRUD (POST, GET, PATCH, DELETE) desde el
+# frontend contra los endpoints que la API ya expone desde la Clase 2. Ver la
+# advertencia de diseno en StaffRequiredMixin: esto restringe la INTERFAZ, no
+# la API en si, que no tiene autenticacion propia.
+
+
+class ProductManageListView(StaffRequiredMixin, APIErrorHandlingMixin, TemplateView):
+    """Listado de gestion: incluye tambien los productos retirados."""
+
+    template_name = 'catalog/manage/product_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pagina = products_api.list_products_for_management()
+        context['products'] = pagina['items']
+        return context
+
+
+class ProductCreateView(StaffRequiredMixin, FormView):
+    """Alta de un producto nuevo. POST /products."""
+
+    template_name = 'catalog/manage/product_form.html'
+    form_class = ProductCreateForm
+    success_url = reverse_lazy('catalog:manage_product_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['modo'] = 'crear'
+        return context
+
+    def form_valid(self, form):
+        payload = {
+            'sku': form.cleaned_data['sku'],
+            'name': form.cleaned_data['name'],
+            'description': form.cleaned_data['description'],
+            'category': form.cleaned_data['category'],
+            'price': str(form.cleaned_data['price']),
+            'stock': form.cleaned_data['stock'],
+            'image_url': form.cleaned_data['image_url'] or None,
+        }
+        try:
+            products_api.create_product(payload)
+        except APIValidationError as error:
+            # duplicate_sku es el unico 409 posible al crear: se ancla al
+            # campo sku para que el usuario sepa exactamente que corregir.
+            if error.errors and isinstance(error.errors, dict) and error.errors.get('code') == 'duplicate_sku':
+                form.add_error('sku', error.detail)
+            else:
+                form.add_error(None, error.detail)
+            return self.form_invalid(form)
+        except APIUnavailable as error:
+            messages.error(self.request, error.mensaje_usuario)
+            return self.form_invalid(form)
+
+        messages.success(self.request, f"Producto «{form.cleaned_data['name']}» creado correctamente.")
+        return super().form_valid(form)
+
+
+class ProductUpdateView(StaffRequiredMixin, FormView):
+    """Edicion de un producto existente. PATCH /products/{id}.
+
+    Solo viajan los campos del formulario: como todos tienen un valor inicial
+    precargado desde la API, en la practica siempre se envian todos, pero eso
+    es responsabilidad de ProductUpdate en la API (acepta un reemplazo total
+    de los campos editables sin tocar el SKU ni las marcas de tiempo).
+    """
+
+    template_name = 'catalog/manage/product_form.html'
+    form_class = ProductUpdateForm
+    success_url = reverse_lazy('catalog:manage_product_list')
+
+    def get_initial(self):
+        # Se cachea en self.product porque get_context_data lo vuelve a usar.
+        # Los mixins de autenticacion ya se ejecutaron antes de llegar aqui
+        # (dispatch de StaffRequiredMixin), asi que este fetch nunca ocurre
+        # para un usuario sin permisos.
+        if not hasattr(self, 'product'):
+            try:
+                self.product = products_api.get_product(self.kwargs['product_id'])
+            except APINotFound as error:
+                raise Http404('El producto solicitado no existe.') from error
+
+        product = self.product
+        return {
+            'name': product['name'],
+            'description': product['description'],
+            'category': product['category'],
+            'price': product['price'],
+            'stock': product['stock'],
+            'image_url': product['image_url'] or '',
+            'is_active': product['is_active'],
+        }
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['modo'] = 'editar'
+        context['product'] = self.product
+        return context
+
+    def form_valid(self, form):
+        changes = {
+            'name': form.cleaned_data['name'],
+            'description': form.cleaned_data['description'],
+            'category': form.cleaned_data['category'],
+            'price': str(form.cleaned_data['price']),
+            'stock': form.cleaned_data['stock'],
+            'image_url': form.cleaned_data['image_url'] or None,
+            'is_active': form.cleaned_data['is_active'],
+        }
+        try:
+            products_api.update_product(self.kwargs['product_id'], changes)
+        except APIValidationError as error:
+            form.add_error(None, error.detail)
+            return self.form_invalid(form)
+        except APIUnavailable as error:
+            messages.error(self.request, error.mensaje_usuario)
+            return self.form_invalid(form)
+
+        messages.success(self.request, f"Producto «{form.cleaned_data['name']}» actualizado correctamente.")
+        return super().form_valid(form)
+
+
+class ProductDeleteView(StaffRequiredMixin, View):
+    """Retira un producto del catalogo. DELETE /products/{id} (borrado logico).
+
+    Solo acepta POST: un DELETE accesible por GET se podria disparar por
+    accidente con un simple prefetch del navegador o un crawler.
+    """
+
+    def post(self, request, product_id):
+        try:
+            products_api.delete_product(product_id)
+            messages.success(request, 'Producto retirado del catalogo.')
+        except APINotFound:
+            messages.info(request, 'El producto ya habia sido retirado.')
+        except APIUnavailable as error:
+            messages.error(request, error.mensaje_usuario)
+        return redirect('catalog:manage_product_list')

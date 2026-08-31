@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     'core.apps.CoreConfig',
 
     'apps.catalog.apps.CatalogConfig',
+    'apps.accounts.apps.AccountsConfig',
+    'apps.orders.apps.OrdersConfig',
 ]
 
 MIDDLEWARE = [
@@ -71,6 +73,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'apps.orders.context_processors.cart',
             ],
         },
     },
@@ -139,6 +142,13 @@ MAILERS = {
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ── Autenticacion ─────────────────────────────────────────
+# SQLite guarda unicamente usuarios y sesiones; el dominio (productos,
+# pedidos) vive en MongoDB detras de la API (ver apps/catalog/models.py).
+LOGIN_URL = 'accounts:login'
+LOGIN_REDIRECT_URL = 'catalog:product_list'
+LOGOUT_REDIRECT_URL = 'catalog:product_list'
 
 # ── API de TechGear (microservicio FastAPI) ───────────────
 # El portal no tiene base de datos de dominio: productos y pedidos viven en la

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load formatting %}
+
+{% block title %}Carrito | TechGear{% endblock %}
+
+{% block content %}
+    <h1 class="mb-6 text-3xl font-bold tracking-tight text-slate-900">Carrito de compras</h1>
+
+    {% if lines %}
+        <form method="post" action="{% url 'orders:cart' %}">
+            {% csrf_token %}
+            <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table class="w-full text-left text-sm">
+                    <thead class="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                        <tr>
+                            <th class="px-4 py-3">Producto</th>
+                            <th class="px-4 py-3">Precio</th>
+                            <th class="px-4 py-3">Cantidad</th>
+                            <th class="px-4 py-3">Subtotal</th>
+                            <th class="px-4 py-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for line in lines %}
+                            <tr class="border-b border-slate-100 last:border-0">
+                                <td class="px-4 py-3">
+                                    <a href="{% url 'catalog:product_detail' line.product.id %}"
+                                       class="font-medium text-slate-900 hover:text-brand-600">
+                                        {{ line.product.name }}
+                                    </a>
+                                    {% if line.quantity_adjusted %}
+                                        <p class="mt-1 text-xs font-medium text-amber-600">
+                                            Cantidad ajustada: solo hay {{ line.quantity }} disponibles.
+                                        </p>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-slate-600">{{ line.product.price|cop }}</td>
+                                <td class="px-4 py-3">
+                                    <input type="number" name="quantity_{{ line.product.id }}" value="{{ line.quantity }}"
+                                           min="1" max="{{ line.product.stock }}"
+                                           class="w-20 rounded-lg border border-slate-300 px-2 py-1 text-sm
+                                                  focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                                </td>
+                                <td class="px-4 py-3 font-semibold text-slate-900">{{ line.subtotal|cop }}</td>
+                                <td class="px-4 py-3 text-right">
+                                    <button type="submit" formaction="{% url 'orders:cart_remove' line.product.id %}"
+                                            formnovalidate class="text-sm font-medium text-red-600 hover:underline">
+                                        Quitar
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-6 flex flex-col items-end gap-4">
+                <p class="text-xl font-bold text-slate-900">Total: {{ total|cop }}</p>
+                <div class="flex flex-wrap gap-3">
+                    <button type="submit"
+                            class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium
+                                   text-slate-700 hover:border-brand-500 hover:text-brand-600">
+                        Actualizar cantidades
+                    </button>
+                    <a href="{% url 'orders:checkout' %}" class="btn-primary">Continuar al checkout</a>
+                </div>
+            </div>
+        </form>
+    {% else %}
+        <div class="card text-center">
+            <p class="mb-3 text-slate-600">Tu carrito esta vacio.</p>
+            <a href="{% url 'catalog:product_list' %}" class="text-sm font-medium text-brand-600 hover:underline">
+                Ver el catalogo
+            </a>
+        </div>
+    {% endif %}
+{% endblock %}
