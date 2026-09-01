@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
 import os
+import urllib.parse
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -33,6 +34,29 @@ ALLOWED_HOSTS = [
     for host in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
     if host.strip()
 ]
+
+# Dominios autorizados a enviar formularios (POST) al portal. Sin esto,
+# Django rechaza con 403 cualquier POST que llegue por HTTPS desde un dominio
+# distinto al que Django cree que es "el suyo" (chequeo de Origin/Referer) -
+# y el checkout de la Clase 5 es exactamente un POST. En local sobre HTTP no
+# hace falta, pero en Vercel (HTTPS) es obligatorio declarar el dominio.
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',')
+    if origin.strip()
+]
+
+# El portal corre detras del proxy de Vercel: la conexion real
+# proxy->contenedor es HTTP, pero el navegador->proxy es HTTPS. Sin esto,
+# Django cree que toda peticion es insegura y puede entrar en bucles de
+# redireccion al forzar HTTPS.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Las cookies de sesion y CSRF solo se marcan "Secure" cuando DEBUG esta
+# apagado: en desarrollo local (HTTP) marcarlas Secure haria que el navegador
+# las descartara sin avisar, dejando el login roto sin explicacion aparente.
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 # Application definition
 
@@ -84,13 +108,38 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+#
+# SQLite guarda UNICAMENTE usuarios y sesiones (el dominio vive en MongoDB
+# detras de la API), pero en Vercel el sistema de archivos no persiste entre
+# invocaciones de la funcion: un usuario registrado desaparecería en la
+# siguiente peticion. Por eso, cuando existe DATABASE_URL (Postgres
+# gestionado, inyectado por Vercel al conectar la integracion) se usa esa
+# base; en desarrollo local, sin esa variable, se sigue usando SQLite.
+if os.environ.get('DATABASE_URL'):
+    _db_url = urllib.parse.urlparse(os.environ['DATABASE_URL'])
+    # Neon (y la mayoria de Postgres gestionados) exigen SSL y lo indican con
+    # ?sslmode=require en la URL. urlparse no mete la query en ningun otro
+    # campo, asi que hay que reenviarla explicitamente como OPTIONS o
+    # psycopg intentaria conectar sin SSL y Neon rechazaria la conexion.
+    _db_options = dict(urllib.parse.parse_qsl(_db_url.query))
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': _db_url.path.lstrip('/'),
+            'USER': _db_url.username,
+            'PASSWORD': _db_url.password,
+            'HOST': _db_url.hostname,
+            'PORT': _db_url.port,
+            'OPTIONS': _db_options,
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -130,6 +179,10 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 STATICFILES_DIRS = [BASE_DIR / 'static']
+
+# Vercel ejecuta 'collectstatic' automaticamente durante el build y sirve lo
+# recolectado aqui desde su CDN, pero solo si STATIC_ROOT esta definido.
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration

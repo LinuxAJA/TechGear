@@ -1,15 +1,22 @@
+# Dependencias de PRODUCCION. Es lo unico que instala Vercel al desplegar.
+# Las dependencias de prueba viven en requirements-dev.txt.
+#
+# Versiones fijadas: el despliegue compila desde cero, y sin fijarlas una
+# publicacion nueva de cualquier libreria podria romper el build sin que haya
+# cambiado una sola linea del proyecto.
+
 # ── Framework web ─────────────────────────────────────────
-django
+django==6.1
 
 # ── Consumo de la API de TechGear ─────────────────────────
 # Las vistas de Django son sincronas, por eso se usa requests y no httpx async.
-requests
+requests==2.34.2
 
 # ── Configuracion ─────────────────────────────────────────
-python-dotenv
+python-dotenv==1.2.3
 
-# ── Pruebas ───────────────────────────────────────────────
-# requests-mock permite probar las vistas sin levantar FastAPI.
-pytest
-pytest-django
-requests-mock
+# ── Base de datos en produccion (Vercel) ──────────────────
+# SQLite no persiste en un entorno serverless: usuarios y sesiones viven en
+# Postgres cuando existe DATABASE_URL (ver config/settings.py). En desarrollo
+# local, sin esa variable, se sigue usando SQLite y esta libreria no se toca.
+psycopg[binary]==3.2.13

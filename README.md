@@ -89,21 +89,29 @@ techGear/
     │   ├── api/
     │   │   ├── client.py          # ÚNICO módulo que usa requests (Gateway)
     │   │   ├── exceptions.py      # APINotFound, APIValidationError, APIUnavailable
-    │   │   ├── products.py        # operaciones del catálogo
-    │   │   └── orders.py          # pedidos (pendiente)
+    │   │   ├── products.py        # operaciones del catálogo (CRUD completo)
+    │   │   └── orders.py          # operaciones de pedidos (crear, listar, cancelar)
+    │   ├── mixins.py               # APIErrorHandlingMixin, StaffRequiredMixin
     │   └── templatetags/
-    │       ├── formatting.py      # filtros |cop y |categoria
-    │       └── catalog_tags.py    # inclusion_tag, simple_tag y filtros de stock
+    │       ├── formatting.py      # filtros |cop, |categoria, |iso_datetime
+    │       ├── catalog_tags.py    # inclusion_tag, simple_tag y filtros de stock
+    │       └── form_helpers.py    # filtro add_class (formularios con Tailwind)
     ├── apps/
-    │   ├── catalog/               # listado y detalle de productos
-    │   └── orders/                # carrito y pedidos (pendiente)
-    ├── templates/                 # base.html, includes/, catalog/, errors/
+    │   ├── catalog/               # catálogo público + gestión de productos (staff)
+    │   ├── accounts/              # registro, login, logout
+    │   └── orders/                # carrito en sesión, checkout, historial de pedidos
+    ├── templates/                 # base.html, includes/, catalog/, accounts/, orders/, errors/
+    ├── tests/                     # pytest-django + requests-mock (corre con la API apagada)
     ├── static/
     │   ├── src/input.css          # fuente de Tailwind (se edita)
     │   └── css/tailwind.css       # generado por la CLI (se versiona)
     ├── package.json               # toolchain de Tailwind
+    ├── pytest.ini
+    ├── vercel.json                # configuración del despliegue del portal
+    ├── .python-version
     ├── .env.example
-    └── requirements.txt
+    ├── requirements.txt           # solo producción
+    └── requirements-dev.txt       # producción + dependencias de prueba
 ```
 
 En la raíz del repositorio, `render.yaml` describe el despliegue del backend.
@@ -164,7 +172,9 @@ python -m venv venv
 venv\Scripts\activate          # Windows
 # source venv/bin/activate     # Linux / macOS
 
-pip install -r requirements.txt
+# requirements.txt trae solo lo de produccion; requirements-dev.txt lo
+# incluye y suma pytest-django y requests-mock para correr las pruebas.
+pip install -r requirements-dev.txt
 
 copy .env.example .env         # Windows  (cp en Linux/macOS)
 # Generar una SECRET_KEY con:
@@ -193,11 +203,26 @@ npm run build:css      # compilado minificado para la entrega
 
 ## Rutas del portal
 
-| Ruta                | Vista                 | Descripción                                                                                   |
-| ------------------- | --------------------- | ---------------------------------------------------------------------------------------------- |
-| `/`               | `ProductListView`   | Catálogo: listado con búsqueda (`?q=`), filtro (`?category=`) y paginación (`?page=`) |
-| `/producto/<id>/` | `ProductDetailView` | Ficha del producto. Un identificador inexistente devuelve`404`                               |
-| `/admin/`         | Django admin          | Administración de usuarios y sesiones                                                         |
+| Ruta | Vista | Descripción |
+|---|---|---|
+| `/` | `ProductListView` | Catálogo: listado con búsqueda (`?q=`), filtro (`?category=`) y paginación (`?page=`) |
+| `/producto/<id>/` | `ProductDetailView` | Ficha del producto. Un identificador inexistente devuelve `404` |
+| `/cuenta/registro/` | `RegisterView` | Alta de usuario (`UserCreationForm` + correo), con inicio de sesión automático |
+| `/cuenta/login/`, `/cuenta/logout/` | `LoginView`, `LogoutView` | Vistas **integradas** de Django, sin lógica de contraseñas propia |
+| `/carrito/` | `CartView` | Ver y actualizar cantidades del carrito en sesión |
+| `/carrito/agregar/<id>/`, `/carrito/eliminar/<id>/` | `CartAddView`, `CartRemoveView` | Agregar o quitar un producto (solo `POST`) |
+| `/checkout/` | `CheckoutView` | Formulario de datos del comprador → `POST /orders`. Requiere sesión iniciada |
+| `/mis-pedidos/` | `OrderListView` | Historial de pedidos **del usuario autenticado** |
+| `/mis-pedidos/<id>/` | `OrderDetailView` | Detalle de un pedido propio. Ver un pedido ajeno devuelve `404`, no los datos |
+| `/mis-pedidos/<id>/cancelar/` | `OrderCancelView` | Cancela un pedido propio y repone el inventario |
+| `/gestion/productos/` | `ProductManageListView` | CRUD de productos. Requiere `is_staff=True` |
+| `/gestion/productos/nuevo/`, `.../editar/`, `.../eliminar/` | `ProductCreateView`, `ProductUpdateView`, `ProductDeleteView` | Alta, edición y retiro (borrado lógico), todo restringido a staff |
+| `/admin/` | Django admin | Administración de usuarios y sesiones |
+
+> **Nota sobre `/gestion/`:** restringir el acceso con `is_staff` es una barrera de **interfaz**,
+> no de la API: FastAPI no exige autenticación propia, así que cualquiera que conozca la URL de
+> la API podría llamar a `POST /products` directamente. Es una limitación conocida, documentada
+> en [Evoluciones futuras](#evoluciones-futuras).
 
 ## Template tags propios
 
@@ -240,6 +265,28 @@ importa `requests` directamente: es el patrón **Gateway** o capa anticorrupció
 Si la API está caída, el portal responde **503** con la página `errors/api_unavailable.html` en
 lugar de una traza de error.
 
+## Manejo de excepciones
+
+El flujo de compra tiene cuatro puntos donde algo puede salir mal, y cada uno se maneja de forma
+distinta a propósito:
+
+| Caso | Dónde se resuelve | Comportamiento |
+|---|---|---|
+| **Stock insuficiente al confirmar el pedido** | `CheckoutView.form_valid()` | La API responde `409 insufficient_stock` con un mensaje que ya nombra el producto y las unidades disponibles; se muestra tal cual sobre el formulario con `form.add_error(None, ...)` |
+| **El stock cambió mientras el producto estaba en el carrito** | `resolve_cart_lines()` en [`apps/orders/cart.py`](techgear_web/apps/orders/cart.py) | Se revalida contra la API cada vez que se pinta el carrito o el checkout; la cantidad se ajusta al máximo disponible y se avisa **antes** de que el usuario intente pagar |
+| **Un producto del carrito fue retirado o borrado** | `resolve_cart_lines()` | Se detecta el `404` de la API, se quita la línea del carrito automáticamente y se informa con un mensaje, en vez de fallar al confirmar |
+| **La API se cae justo durante el checkout** | `CheckoutView.form_valid()` | Un `POST` no es idempotente, así que **nunca se reintenta solo**: se muestra un error y el carrito queda intacto para que el usuario reintente cuando el servicio vuelva |
+
+Dos detalles de implementación que costó encontrar y vale la pena dejar anotados:
+
+- **`get_context_data()` se reutiliza a propósito.** Cuando `form_valid()` falla y llama a
+  `form_invalid()`, Django vuelve a pedir el contexto para re-renderizar la página. Sin cachear el
+  resultado de `resolve_cart_lines()` en `self._cart_lines`, esa segunda llamada repetiría la
+  petición a la API — y si la API está caída, provocaría un **segundo** fallo sin capturar.
+- **`APIErrorHandlingMixin` solo envuelve `get()`**, no `post()`. Las llamadas a la API que ocurren
+  dentro de un `post()` (la revalidación del carrito en `form_valid()`, o `OrderCancelView`) se
+  protegen con su propio `try/except`, explícitamente.
+
 ## ¿Por qué `models.py` está vacío?
 
 No es un descuido. En esta arquitectura híbrida **el modelo de dominio es remoto**: los productos
@@ -270,15 +317,17 @@ de variables y valores de ejemplo.
 
 ### `techgear_web/.env`
 
-| Variable                  | Descripción                                  | Ejemplo                          |
-| ------------------------- | --------------------------------------------- | -------------------------------- |
-| `DJANGO_SECRET_KEY`     | Clave criptográfica de Django                | `clave-solo-para-desarrollo`   |
-| `DJANGO_DEBUG`          | Modo depuración                              | `True`                         |
-| `DJANGO_ALLOWED_HOSTS`  | Hosts autorizados                             | `localhost,127.0.0.1`          |
-| `TECHGEAR_API_BASE_URL` | URL base de la API                            | `http://localhost:8001/api/v1` |
-| `TECHGEAR_API_TIMEOUT`  | Segundos de espera por petición              | `10` (local) / `30` (Render) |
-| `TECHGEAR_API_RETRIES`  | Reintentos ante 502/503/504                   | `3` (local) / `5` (Render)   |
-| `TECHGEAR_API_BACKOFF`  | Factor de espera exponencial entre reintentos | `0.3` (local) / `2` (Render) |
+| Variable | Descripción | Ejemplo |
+|---|---|---|
+| `DJANGO_SECRET_KEY` | Clave criptográfica de Django | `clave-solo-para-desarrollo` |
+| `DJANGO_DEBUG` | Modo depuración | `True` (local) / `False` (Vercel) |
+| `DJANGO_ALLOWED_HOSTS` | Hosts autorizados | `localhost,127.0.0.1` |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | Dominios HTTPS autorizados a enviar `POST` | vacío (local) / `https://tu-proyecto.vercel.app` |
+| `DATABASE_URL` | Postgres para usuarios y sesiones | vacío (local, usa SQLite) / la URL que entrega Neon en Vercel |
+| `TECHGEAR_API_BASE_URL` | URL base de la API | `http://localhost:8001/api/v1` |
+| `TECHGEAR_API_TIMEOUT` | Segundos de espera por petición | `10` (local) / `30` (Render) |
+| `TECHGEAR_API_RETRIES` | Reintentos ante 502/503/504 | `3` (local) / `5` (Render) |
+| `TECHGEAR_API_BACKOFF` | Factor de espera exponencial entre reintentos | `0.3` (local) / `2` (Render) |
 
 ---
 
@@ -341,6 +390,11 @@ solo bloque de código:
 
 ## Pruebas
 
+Ninguna de las dos suites necesita que el otro servicio esté corriendo: ambas usan un doble de
+prueba (repositorio falso / API simulada) en vez de una dependencia real.
+
+### API (`techgear_api`)
+
 ```bash
 cd techgear_api
 venv\Scripts\activate
@@ -353,6 +407,29 @@ interfaz que el repositorio real. Por eso corren en menos de un segundo, no nece
 a MongoDB Atlas y no dejan datos de prueba en la base. Cubren el cálculo de totales, el
 *snapshot* de precios, el descuento de inventario, la reposición ante un fallo parcial, las
 transiciones de estado y el borrado lógico.
+
+### Portal (`techgear_web`)
+
+```bash
+cd techgear_web
+venv\Scripts\activate
+pip install -r requirements-dev.txt   # si aun no estan instaladas
+pytest
+```
+
+Las 27 pruebas corren **con `techgear_api` completamente apagado**: `requests-mock` intercepta
+cada llamada de `requests` antes de que salga a la red, con respuestas que reproducen la forma
+exacta de `ProductPublic`/`OrderPublic` (ver `tests/conftest.py`). Cubren, entre otros:
+
+- El catálogo renderiza con datos simulados, y muestra la página de servicio no disponible si la
+  API "está caída" (`requests_mock` configurado para lanzar `ConnectionError`).
+- `LoginRequiredMixin` redirige a un visitante anónimo desde `/checkout/` y `/mis-pedidos/`.
+- El checkout con `409 insufficient_stock` muestra el mensaje sobre el formulario **y conserva
+  el carrito**; lo mismo con la API caída durante el envío.
+- El carrito consolida cantidades del mismo producto y las ajusta al stock disponible.
+- Un usuario no puede ver ni cancelar el pedido de otro (ambos casos devuelven `404`).
+- La gestión de productos: `403` para un usuario autenticado sin `is_staff`, y el error de SKU
+  duplicado queda anclado al campo correcto del formulario.
 
 ---
 
@@ -396,6 +473,74 @@ Con `backoff=2` y 5 intentos se esperan 0, 2, 4, 8 y 16 segundos: 30 segundos ac
 suficientes para cubrir el arranque en frio. Con los valores de desarrollo (10 s de espera y
 reintentos de menos de un segundo) la primera visita al portal tras un rato de inactividad
 mostraria la pagina de servicio no disponible aunque el backend estuviera sano.
+
+### Portal en Vercel
+
+El portal se despliega en **Vercel** a partir de [`vercel.json`](techgear_web/vercel.json).
+Vercel detecta el proyecto Django por su `manage.py` y resuelve el punto de entrada desde
+`WSGI_APPLICATION` en `config/settings.py`; no hace falta ningún adaptador.
+
+Tres diferencias frente a correr Django en un servidor propio, todas resueltas en el código:
+
+| Problema | Por qué existe | Solución en el código |
+|---|---|---|
+| El sistema de archivos no persiste entre invocaciones | Cada petición puede atenderla una instancia distinta de la función | `DATABASE_URL` activa Postgres para usuarios y sesiones; sin ella, SQLite (ver `config/settings.py`) |
+| `POST` rechazado con `403` en HTTPS | Django exige declarar los orígenes que pueden enviar formularios | `DJANGO_CSRF_TRUSTED_ORIGINS` con el dominio de Vercel |
+| Redirecciones HTTPS en bucle | La conexión real proxy→contenedor es HTTP | `SECURE_PROXY_SSL_HEADER` |
+
+> **El error más fácil de cometer aquí:** olvidar `DJANGO_CSRF_TRUSTED_ORIGINS` no rompe el
+> catálogo (son peticiones `GET`) ni el login a simple vista — rompe **el checkout**, que es
+> exactamente el flujo que entrega la Clase 5, y solo se nota al intentar confirmar un pedido en
+> producción.
+
+**Pasos de despliegue** (panel de Vercel):
+
+1. **Add New → Project**, importar el repositorio. **Root Directory: `techgear_web`** — es
+   obligatorio en este monorepo, o Vercel busca `manage.py` en la raíz y no lo encuentra.
+2. **Storage → Create Database → Postgres** (Neon) y conectarla al proyecto: define
+   `DATABASE_URL` automáticamente.
+3. **Settings → Environment Variables**, en *Production*:
+
+   | Variable | Valor |
+   |---|---|
+   | `DJANGO_SECRET_KEY` | una clave nueva, **distinta a la de desarrollo** |
+   | `DJANGO_DEBUG` | `False` |
+   | `DJANGO_ALLOWED_HOSTS` | `.vercel.app` |
+   | `DJANGO_CSRF_TRUSTED_ORIGINS` | `https://<tu-proyecto>.vercel.app` |
+   | `TECHGEAR_API_BASE_URL` | `https://techgear-api-10pc.onrender.com/api/v1` |
+   | `TECHGEAR_API_TIMEOUT` / `_RETRIES` / `_BACKOFF` | `30` / `5` / `2` |
+
+4. **Deploy.** Vercel corre `collectstatic` automáticamente (por eso `STATIC_ROOT` está
+   definido) y sirve `/static/` desde su CDN.
+5. **Migrar la base de datos** — no ocurre sola en el despliegue:
+   ```bash
+   cd techgear_web
+   vercel link
+   vercel env pull .env.local     # nunca se versiona: ya está en .gitignore
+   # cargar esas variables y ejecutar:
+   python manage.py migrate
+   python manage.py createsuperuser   # usuario is_staff para /gestion/
+   ```
+6. En **Render → techgear-api → Environment**, ampliar `CORS_ORIGINS` con el dominio de Vercel.
+
+---
+
+## Evoluciones futuras
+
+Limitaciones conocidas y aceptadas para el alcance de este taller, con el camino correcto para
+cuando dejen de serlo:
+
+- **La API no tiene autenticación propia.** `is_staff` en Django restringe la *interfaz* de
+  gestión, pero cualquiera que conozca la URL de la API podría llamar a `POST /products`
+  directamente. La solución correcta es una clave de servicio o JWT validado en `techgear_api`.
+- **El descuento de stock es atómico por documento, no transaccional entre colecciones.**
+  MongoDB Atlas corre como *replica set*, así que el paso natural es envolver la creación del
+  pedido y el descuento de inventario en una transacción multi-documento.
+- **La búsqueda del catálogo usa `$regex`, no un índice de texto.** Suficiente a esta escala;
+  con un catálogo grande, [Atlas Search](https://www.mongodb.com/docs/atlas/atlas-search/) daría
+  resultados más relevantes y más rápido.
+- **Sin CI.** Las dos suites de pruebas corren en local; el paso natural es un workflow de
+  GitHub Actions que las ejecute en cada Pull Request.
 
 ---
 
