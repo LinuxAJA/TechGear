@@ -16,7 +16,7 @@ Sistema web híbrido para una tienda de hardware y accesorios tecnológicos.
 | API — Documentación interactiva (Swagger UI) | Render  | https://techgear-api-10pc.onrender.com/docs   |
 | API — Estado del servicio                     | Render  | https://techgear-api-10pc.onrender.com/health |
 | API — URL base                                | Render  | https://techgear-api-10pc.onrender.com/       |
-| Portal web (Django)                            | —      | _pendiente de desplegar_                    |
+| Portal web (Django)                            | —      | https://tech-gear-gamma.vercel.app/           |
 | Repositorio                                    | GitHub  | https://github.com/LinuxAJA/TechGear          |
 
 > **El primer acceso puede tardar.** La API se despliega en el plan gratuito de Render, que
@@ -203,21 +203,21 @@ npm run build:css      # compilado minificado para la entrega
 
 ## Rutas del portal
 
-| Ruta | Vista | Descripción |
-|---|---|---|
-| `/` | `ProductListView` | Catálogo: listado con búsqueda (`?q=`), filtro (`?category=`) y paginación (`?page=`) |
-| `/producto/<id>/` | `ProductDetailView` | Ficha del producto. Un identificador inexistente devuelve `404` |
-| `/cuenta/registro/` | `RegisterView` | Alta de usuario (`UserCreationForm` + correo), con inicio de sesión automático |
-| `/cuenta/login/`, `/cuenta/logout/` | `LoginView`, `LogoutView` | Vistas **integradas** de Django, sin lógica de contraseñas propia |
-| `/carrito/` | `CartView` | Ver y actualizar cantidades del carrito en sesión |
-| `/carrito/agregar/<id>/`, `/carrito/eliminar/<id>/` | `CartAddView`, `CartRemoveView` | Agregar o quitar un producto (solo `POST`) |
-| `/checkout/` | `CheckoutView` | Formulario de datos del comprador → `POST /orders`. Requiere sesión iniciada |
-| `/mis-pedidos/` | `OrderListView` | Historial de pedidos **del usuario autenticado** |
-| `/mis-pedidos/<id>/` | `OrderDetailView` | Detalle de un pedido propio. Ver un pedido ajeno devuelve `404`, no los datos |
-| `/mis-pedidos/<id>/cancelar/` | `OrderCancelView` | Cancela un pedido propio y repone el inventario |
-| `/gestion/productos/` | `ProductManageListView` | CRUD de productos. Requiere `is_staff=True` |
-| `/gestion/productos/nuevo/`, `.../editar/`, `.../eliminar/` | `ProductCreateView`, `ProductUpdateView`, `ProductDeleteView` | Alta, edición y retiro (borrado lógico), todo restringido a staff |
-| `/admin/` | Django admin | Administración de usuarios y sesiones |
+| Ruta                                                              | Vista                                                               | Descripción                                                                                   |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `/`                                                             | `ProductListView`                                                 | Catálogo: listado con búsqueda (`?q=`), filtro (`?category=`) y paginación (`?page=`) |
+| `/producto/<id>/`                                               | `ProductDetailView`                                               | Ficha del producto. Un identificador inexistente devuelve`404`                               |
+| `/cuenta/registro/`                                             | `RegisterView`                                                    | Alta de usuario (`UserCreationForm` + correo), con inicio de sesión automático             |
+| `/cuenta/login/`, `/cuenta/logout/`                           | `LoginView`, `LogoutView`                                       | Vistas**integradas** de Django, sin lógica de contraseñas propia                       |
+| `/carrito/`                                                     | `CartView`                                                        | Ver y actualizar cantidades del carrito en sesión                                             |
+| `/carrito/agregar/<id>/`, `/carrito/eliminar/<id>/`           | `CartAddView`, `CartRemoveView`                                 | Agregar o quitar un producto (solo`POST`)                                                    |
+| `/checkout/`                                                    | `CheckoutView`                                                    | Formulario de datos del comprador →`POST /orders`. Requiere sesión iniciada                |
+| `/mis-pedidos/`                                                 | `OrderListView`                                                   | Historial de pedidos**del usuario autenticado**                                          |
+| `/mis-pedidos/<id>/`                                            | `OrderDetailView`                                                 | Detalle de un pedido propio. Ver un pedido ajeno devuelve`404`, no los datos                 |
+| `/mis-pedidos/<id>/cancelar/`                                   | `OrderCancelView`                                                 | Cancela un pedido propio y repone el inventario                                                |
+| `/gestion/productos/`                                           | `ProductManageListView`                                           | CRUD de productos. Requiere`is_staff=True`                                                   |
+| `/gestion/productos/nuevo/`, `.../editar/`, `.../eliminar/` | `ProductCreateView`, `ProductUpdateView`, `ProductDeleteView` | Alta, edición y retiro (borrado lógico), todo restringido a staff                            |
+| `/admin/`                                                       | Django admin                                                        | Administración de usuarios y sesiones                                                         |
 
 > **Nota sobre `/gestion/`:** restringir el acceso con `is_staff` es una barrera de **interfaz**,
 > no de la API: FastAPI no exige autenticación propia, así que cualquiera que conozca la URL de
@@ -270,12 +270,12 @@ lugar de una traza de error.
 El flujo de compra tiene cuatro puntos donde algo puede salir mal, y cada uno se maneja de forma
 distinta a propósito:
 
-| Caso | Dónde se resuelve | Comportamiento |
-|---|---|---|
-| **Stock insuficiente al confirmar el pedido** | `CheckoutView.form_valid()` | La API responde `409 insufficient_stock` con un mensaje que ya nombra el producto y las unidades disponibles; se muestra tal cual sobre el formulario con `form.add_error(None, ...)` |
-| **El stock cambió mientras el producto estaba en el carrito** | `resolve_cart_lines()` en [`apps/orders/cart.py`](techgear_web/apps/orders/cart.py) | Se revalida contra la API cada vez que se pinta el carrito o el checkout; la cantidad se ajusta al máximo disponible y se avisa **antes** de que el usuario intente pagar |
-| **Un producto del carrito fue retirado o borrado** | `resolve_cart_lines()` | Se detecta el `404` de la API, se quita la línea del carrito automáticamente y se informa con un mensaje, en vez de fallar al confirmar |
-| **La API se cae justo durante el checkout** | `CheckoutView.form_valid()` | Un `POST` no es idempotente, así que **nunca se reintenta solo**: se muestra un error y el carrito queda intacto para que el usuario reintente cuando el servicio vuelva |
+| Caso                                                                 | Dónde se resuelve                                                                     | Comportamiento                                                                                                                                                                           |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Stock insuficiente al confirmar el pedido**                  | `CheckoutView.form_valid()`                                                          | La API responde`409 insufficient_stock` con un mensaje que ya nombra el producto y las unidades disponibles; se muestra tal cual sobre el formulario con `form.add_error(None, ...)` |
+| **El stock cambió mientras el producto estaba en el carrito** | `resolve_cart_lines()` en [`apps/orders/cart.py`](techgear_web/apps/orders/cart.py) | Se revalida contra la API cada vez que se pinta el carrito o el checkout; la cantidad se ajusta al máximo disponible y se avisa**antes** de que el usuario intente pagar          |
+| **Un producto del carrito fue retirado o borrado**             | `resolve_cart_lines()`                                                               | Se detecta el`404` de la API, se quita la línea del carrito automáticamente y se informa con un mensaje, en vez de fallar al confirmar                                               |
+| **La API se cae justo durante el checkout**                    | `CheckoutView.form_valid()`                                                          | Un`POST` no es idempotente, así que **nunca se reintenta solo**: se muestra un error y el carrito queda intacto para que el usuario reintente cuando el servicio vuelva         |
 
 Dos detalles de implementación que costó encontrar y vale la pena dejar anotados:
 
@@ -317,17 +317,17 @@ de variables y valores de ejemplo.
 
 ### `techgear_web/.env`
 
-| Variable | Descripción | Ejemplo |
-|---|---|---|
-| `DJANGO_SECRET_KEY` | Clave criptográfica de Django | `clave-solo-para-desarrollo` |
-| `DJANGO_DEBUG` | Modo depuración | `True` (local) / `False` (Vercel) |
-| `DJANGO_ALLOWED_HOSTS` | Hosts autorizados | `localhost,127.0.0.1` |
-| `DJANGO_CSRF_TRUSTED_ORIGINS` | Dominios HTTPS autorizados a enviar `POST` | vacío (local) / `https://tu-proyecto.vercel.app` |
-| `DATABASE_URL` | Postgres para usuarios y sesiones | vacío (local, usa SQLite) / la URL que entrega Neon en Vercel |
-| `TECHGEAR_API_BASE_URL` | URL base de la API | `http://localhost:8001/api/v1` |
-| `TECHGEAR_API_TIMEOUT` | Segundos de espera por petición | `10` (local) / `30` (Render) |
-| `TECHGEAR_API_RETRIES` | Reintentos ante 502/503/504 | `3` (local) / `5` (Render) |
-| `TECHGEAR_API_BACKOFF` | Factor de espera exponencial entre reintentos | `0.3` (local) / `2` (Render) |
+| Variable                        | Descripción                                  | Ejemplo                                                        |
+| ------------------------------- | --------------------------------------------- | -------------------------------------------------------------- |
+| `DJANGO_SECRET_KEY`           | Clave criptográfica de Django                | `clave-solo-para-desarrollo`                                 |
+| `DJANGO_DEBUG`                | Modo depuración                              | `True` (local) / `False` (Vercel)                          |
+| `DJANGO_ALLOWED_HOSTS`        | Hosts autorizados                             | `localhost,127.0.0.1`                                        |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | Dominios HTTPS autorizados a enviar`POST`   | vacío (local) /`https://tu-proyecto.vercel.app`             |
+| `DATABASE_URL`                | Postgres para usuarios y sesiones             | vacío (local, usa SQLite) / la URL que entrega Neon en Vercel |
+| `TECHGEAR_API_BASE_URL`       | URL base de la API                            | `http://localhost:8001/api/v1`                               |
+| `TECHGEAR_API_TIMEOUT`        | Segundos de espera por petición              | `10` (local) / `30` (Render)                               |
+| `TECHGEAR_API_RETRIES`        | Reintentos ante 502/503/504                   | `3` (local) / `5` (Render)                                 |
+| `TECHGEAR_API_BACKOFF`        | Factor de espera exponencial entre reintentos | `0.3` (local) / `2` (Render)                               |
 
 ---
 
@@ -482,11 +482,11 @@ Vercel detecta el proyecto Django por su `manage.py` y resuelve el punto de entr
 
 Tres diferencias frente a correr Django en un servidor propio, todas resueltas en el código:
 
-| Problema | Por qué existe | Solución en el código |
-|---|---|---|
+| Problema                                              | Por qué existe                                                      | Solución en el código                                                                                  |
+| ----------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | El sistema de archivos no persiste entre invocaciones | Cada petición puede atenderla una instancia distinta de la función | `DATABASE_URL` activa Postgres para usuarios y sesiones; sin ella, SQLite (ver `config/settings.py`) |
-| `POST` rechazado con `403` en HTTPS | Django exige declarar los orígenes que pueden enviar formularios | `DJANGO_CSRF_TRUSTED_ORIGINS` con el dominio de Vercel |
-| Redirecciones HTTPS en bucle | La conexión real proxy→contenedor es HTTP | `SECURE_PROXY_SSL_HEADER` |
+| `POST` rechazado con `403` en HTTPS               | Django exige declarar los orígenes que pueden enviar formularios    | `DJANGO_CSRF_TRUSTED_ORIGINS` con el dominio de Vercel                                                 |
+| Redirecciones HTTPS en bucle                          | La conexión real proxy→contenedor es HTTP                          | `SECURE_PROXY_SSL_HEADER`                                                                              |
 
 > **El error más fácil de cometer aquí:** olvidar `DJANGO_CSRF_TRUSTED_ORIGINS` no rompe el
 > catálogo (son peticiones `GET`) ni el login a simple vista — rompe **el checkout**, que es
@@ -501,18 +501,18 @@ Tres diferencias frente a correr Django en un servidor propio, todas resueltas e
    `DATABASE_URL` automáticamente.
 3. **Settings → Environment Variables**, en *Production*:
 
-   | Variable | Valor |
-   |---|---|
-   | `DJANGO_SECRET_KEY` | una clave nueva, **distinta a la de desarrollo** |
-   | `DJANGO_DEBUG` | `False` |
-   | `DJANGO_ALLOWED_HOSTS` | `.vercel.app` |
-   | `DJANGO_CSRF_TRUSTED_ORIGINS` | `https://<tu-proyecto>.vercel.app` |
-   | `TECHGEAR_API_BASE_URL` | `https://techgear-api-10pc.onrender.com/api/v1` |
-   | `TECHGEAR_API_TIMEOUT` / `_RETRIES` / `_BACKOFF` | `30` / `5` / `2` |
-
+   | Variable                                               | Valor                                                 |
+   | ------------------------------------------------------ | ----------------------------------------------------- |
+   | `DJANGO_SECRET_KEY`                                  | una clave nueva,**distinta a la de desarrollo** |
+   | `DJANGO_DEBUG`                                       | `False`                                             |
+   | `DJANGO_ALLOWED_HOSTS`                               | `.vercel.app`                                       |
+   | `DJANGO_CSRF_TRUSTED_ORIGINS`                        | `https://<tu-proyecto>.vercel.app`                  |
+   | `TECHGEAR_API_BASE_URL`                              | `https://techgear-api-10pc.onrender.com/api/v1`     |
+   | `TECHGEAR_API_TIMEOUT` / `_RETRIES` / `_BACKOFF` | `30` / `5` / `2`                                |
 4. **Deploy.** Vercel corre `collectstatic` automáticamente (por eso `STATIC_ROOT` está
    definido) y sirve `/static/` desde su CDN.
 5. **Migrar la base de datos** — no ocurre sola en el despliegue:
+
    ```bash
    cd techgear_web
    vercel link
